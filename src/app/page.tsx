@@ -14,8 +14,16 @@ const nodeTypes = { agentNode: AgentCustomNode };
 
 const PRESET_SCENARIOS = [
   {
-    label: '🛒 커머스 최저가·쿠폰 조사',
-    prompt: '경쟁사 스마트워치 3종 최저가·쿠폰가 크롤링 후 비교 보고서 작성해줘',
+    label: '🏥 ISO 13485·9001 품질문서 심사',
+    prompt: '의료기기 제조 품질매뉴얼 및 작업표준서(SOP) 작성 시 ISO 13485:2016 및 ISO 9001:2015 인증 필수 요구사항 체크리스트와 주요 부적합(Gap) 방지 대책 보고서 작성해줘',
+  },
+  {
+    label: '📉 월간 불량률(PPM)·CAPA 분석',
+    prompt: '제조 라인 수입·공정검사 불량률(PPM) 데이터를 분석하여 핵심 불량 원인(Pareto)을 도출하고 협력사 시정조치요구서(CAPA) 및 8D 대책 보고서를 작성해줘',
+  },
+  {
+    label: '🏭 제조 수입검사(CoA) 자동화',
+    prompt: '제조업 수입검사 성적서(CoA) 엑셀 수기 입력 업무를 Python과 Vision AI로 자동화할 때의 기대 효과와 도입 로드맵 보고서를 작성해줘',
   },
   {
     label: '👩‍💼 2026 AI·자동화 채용 분석',
@@ -26,8 +34,8 @@ const PRESET_SCENARIOS = [
     prompt: 'Gemini 2.0 Flash와 GPT-4o-mini의 토큰당 요금을 비교해서 월 5천만 토큰 사용 시 예상 비용과 절감 방안을 정리해줘',
   },
   {
-    label: '🏭 제조 수입검사(CoA) 자동화',
-    prompt: '제조업 수입검사 성적서(CoA) 엑셀 수기 입력 업무를 Python과 Vision AI로 자동화할 때의 기대 효과와 도입 로드맵 보고서를 작성해줘',
+    label: '🛒 커머스 최저가·쿠폰 조사',
+    prompt: '경쟁사 스마트워치 3종 최저가·쿠폰가 크롤링 후 비교 보고서 작성해줘',
   },
 ];
 

@@ -34,7 +34,12 @@ def assemble_team(
             dept_code = "hr"
         elif any(k in p for k in ["원가", "요금", "비용", "토큰", "가격비교", "단가", "재무", "예산"]):
             dept_code = "fin"
-        elif any(k in p for k in ["수입검사", "coa", "성적서", "품질", "불량", "검수", "qa"]):
+        elif any(k in p for k in [
+            "수입검사", "coa", "성적서", "품질", "불량", "검수", "qa", "iso", "13485", "9001",
+            "14971", "60601", "62304", "kgmp", "fda", "820", "iatf", "16949", "apqp", "ppap",
+            "14001", "45001", "rohs", "reach", "msds", "haccp", "의료기기", "절차서", "sop",
+            "매뉴얼", "ppm", "capa", "파레토", "pareto", "8d", "시정조치", "위험관리"
+        ]):
             dept_code = "qa"
         elif any(k in p for k in ["재고", "erp", "bom", "엑셀", "백오피스"]):
             dept_code = "erp"
