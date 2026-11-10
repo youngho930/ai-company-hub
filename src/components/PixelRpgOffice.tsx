@@ -94,7 +94,7 @@ const CW = 1120;
 const CH = 640;
 const CORRIDOR_Y = 304;
 
-// public/office_bg.png 의 6개 부서실 구도 및 책상·서가·출입구 좌표 정밀 매칭
+// public/office_bg.png 픽셀 스캔 기반 6개 부서실 및 15개 책상·이름표 오차 0px 정밀 매칭 좌표
 const ROOMS: Record<
   DeptRoomKey,
   {
@@ -107,6 +107,8 @@ const ROOMS: Record<
     doorX: number;
     doorY: number;
     floorType: 'WOOD' | 'DARK_BLUE' | 'SLATE' | 'AMBER' | 'EMERALD';
+    bgFloorTone: string;
+    bgFloorShadow: string;
     desks: Point[];
     shelf: Point;
   }
@@ -121,10 +123,12 @@ const ROOMS: Record<
     doorX: 195,
     doorY: 274,
     floorType: 'WOOD',
+    bgFloorTone: '#834930',
+    bgFloorShadow: '#6b3923',
     desks: [
-      { x: 128, y: 140 },
-      { x: 244, y: 140 },
-      { x: 294, y: 206 },
+      { x: 131, y: 146 },
+      { x: 248, y: 146 },
+      { x: 299, y: 213 },
     ],
     shelf: { x: 186, y: 84 },
   },
@@ -138,10 +142,12 @@ const ROOMS: Record<
     doorX: 560,
     doorY: 274,
     floorType: 'DARK_BLUE',
+    bgFloorTone: '#2f4570',
+    bgFloorShadow: '#1f3154',
     desks: [
-      { x: 472, y: 140 },
-      { x: 588, y: 140 },
-      { x: 638, y: 206 },
+      { x: 472, y: 146 },
+      { x: 595, y: 146 },
+      { x: 643, y: 213 },
     ],
     shelf: { x: 492, y: 84 },
   },
@@ -155,10 +161,12 @@ const ROOMS: Record<
     doorX: 925,
     doorY: 274,
     floorType: 'SLATE',
+    bgFloorTone: '#3d5f5b',
+    bgFloorShadow: '#2c4745',
     desks: [
-      { x: 830, y: 140 },
-      { x: 938, y: 140 },
-      { x: 1002, y: 206 },
+      { x: 830, y: 146 },
+      { x: 947, y: 146 },
+      { x: 1010, y: 213 },
     ],
     shelf: { x: 800, y: 84 },
   },
@@ -172,10 +180,12 @@ const ROOMS: Record<
     doorX: 195,
     doorY: 338,
     floorType: 'EMERALD',
+    bgFloorTone: '#425e52',
+    bgFloorShadow: '#2f473e',
     desks: [
-      { x: 126, y: 454 },
-      { x: 242, y: 454 },
-      { x: 294, y: 520 },
+      { x: 133, y: 458 },
+      { x: 250, y: 458 },
+      { x: 296, y: 531 },
     ],
     shelf: { x: 78, y: 405 },
   },
@@ -189,6 +199,8 @@ const ROOMS: Record<
     doorX: 560,
     doorY: 338,
     floorType: 'AMBER',
+    bgFloorTone: '#8e4e25',
+    bgFloorShadow: '#6c3818',
     desks: [],
     shelf: { x: 432, y: 396 },
   },
@@ -202,24 +214,27 @@ const ROOMS: Record<
     doorX: 925,
     doorY: 338,
     floorType: 'WOOD',
+    bgFloorTone: '#72476d',
+    bgFloorShadow: '#563352',
     desks: [
-      { x: 838, y: 454 },
-      { x: 948, y: 454 },
-      { x: 1010, y: 520 },
+      { x: 834, y: 458 },
+      { x: 951, y: 458 },
+      { x: 1008, y: 531 },
     ],
     shelf: { x: 980, y: 400 },
   },
 };
 
-// 중앙 결재·회의실 타원형 테이블 중심 및 의자(좌석) 좌표 정밀 매칭
-const MEETING_TABLE_CENTER = { x: 558, y: 520 };
+// 중앙 결재·회의실 타원형 테이블 중심 및 신영호 대표/전담팀 좌석 정밀 좌표
+const MEETING_TABLE_CENTER = { x: 558, y: 525 };
 const MEETING_SEATS = {
-  CEO: { x: 556, y: 432, facing: 'DOWN' as Direction },
-  SUPERVISOR: { x: 446, y: 494, facing: 'DOWN' as Direction },
-  WORKER1: { x: 492, y: 556, facing: 'UP' as Direction },
-  WORKER2: { x: 624, y: 556, facing: 'UP' as Direction },
+  CEO: { x: 556, y: 456, facing: 'DOWN' as Direction },
+  SUPERVISOR: { x: 444, y: 498, facing: 'DOWN' as Direction },
+  WORKER1: { x: 492, y: 558, facing: 'UP' as Direction },
+  WORKER2: { x: 624, y: 558, facing: 'UP' as Direction },
 };
 
+// office_bg.png 일러스트 화풍과 완벽히 어우러지는 차분하고 고급스러운 애니메이션 톤 헤어/수트 팔레트
 const INITIAL_ROSTER: Array<{
   id: string;
   name: string;
@@ -232,22 +247,22 @@ const INITIAL_ROSTER: Array<{
   shirt: string;
   accessory: 'GLASSES' | 'HEADSET' | 'CROWN_PIN' | 'SAFETY_BADGE' | 'NONE';
 }> = [
-  { id: 'ceo', name: '신영호 대표', deptTitle: '경영진', roomKey: 'MEETING_ROOM', role: 'CEO', deskIdx: 0, hair: '#cbd5e1', shade: '#64748b', shirt: '#1e293b', accessory: 'CROWN_PIN' },
-  { id: 'sup-hr-01', name: '윤지아 팀장', deptTitle: '인사·리서치팀', roomKey: 'HR_ROOM', role: 'SUPERVISOR', deskIdx: 0, hair: '#fb7185', shade: '#be123c', shirt: '#9f1239', accessory: 'GLASSES' },
-  { id: 'wrk-hr-01', name: '박수아 수석', deptTitle: '인사·리서치팀', roomKey: 'HR_ROOM', role: 'WORKER1', deskIdx: 1, hair: '#38bdf8', shade: '#0369a1', shirt: '#1e40af', accessory: 'GLASSES' },
-  { id: 'wrk-hr-02', name: '한채원 책임', deptTitle: '인사·리서치팀', roomKey: 'HR_ROOM', role: 'WORKER2', deskIdx: 2, hair: '#c084fc', shade: '#7e22ce', shirt: '#4c1d95', accessory: 'HEADSET' },
-  { id: 'sup-dev-01', name: '임민서 팀장', deptTitle: 'SW개발팀', roomKey: 'DEV_ROOM', role: 'SUPERVISOR', deskIdx: 0, hair: '#60a5fa', shade: '#1d4ed8', shirt: '#1e3a8a', accessory: 'HEADSET' },
-  { id: 'wrk-dev-01', name: '임지우 수석', deptTitle: 'SW개발팀', roomKey: 'DEV_ROOM', role: 'WORKER1', deskIdx: 1, hair: '#84cc16', shade: '#4d7c0f', shirt: '#0f766e', accessory: 'GLASSES' },
-  { id: 'wrk-dev-02', name: '임유진 책임', deptTitle: 'SW개발팀', roomKey: 'DEV_ROOM', role: 'WORKER2', deskIdx: 2, hair: '#f472b6', shade: '#db2777', shirt: '#6b21a8', accessory: 'HEADSET' },
-  { id: 'sup-qa-01', name: '임승현 팀장', deptTitle: '품질보증·QA팀', roomKey: 'QA_ROOM', role: 'SUPERVISOR', deskIdx: 0, hair: '#fb923c', shade: '#c2410c', shirt: '#047857', accessory: 'GLASSES' },
-  { id: 'wrk-qa-01', name: '한도윤 수석', deptTitle: '품질보증·QA팀', roomKey: 'QA_ROOM', role: 'WORKER1', deskIdx: 1, hair: '#38bdf8', shade: '#0f766e', shirt: '#1d4ed8', accessory: 'SAFETY_BADGE' },
-  { id: 'wrk-qa-02', name: '장지우 책임', deptTitle: '품질보증·QA팀', roomKey: 'QA_ROOM', role: 'WORKER2', deskIdx: 2, hair: '#a855f7', shade: '#6b21a8', shirt: '#4338ca', accessory: 'HEADSET' },
-  { id: 'sup-fin-01', name: '정우성 팀장', deptTitle: '재무·데이터팀', roomKey: 'FIN_ROOM', role: 'SUPERVISOR', deskIdx: 0, hair: '#facc15', shade: '#a16207', shirt: '#1e40af', accessory: 'GLASSES' },
-  { id: 'wrk-fin-01', name: '강현우 수석', deptTitle: '재무·데이터팀', roomKey: 'FIN_ROOM', role: 'WORKER1', deskIdx: 1, hair: '#60a5fa', shade: '#1e40af', shirt: '#065f46', accessory: 'GLASSES' },
-  { id: 'wrk-fin-02', name: '배수빈 책임', deptTitle: '재무·데이터팀', roomKey: 'FIN_ROOM', role: 'WORKER2', deskIdx: 2, hair: '#f87171', shade: '#991b1b', shirt: '#5b21b6', accessory: 'HEADSET' },
-  { id: 'sup-mkt-01', name: '조다은 팀장', deptTitle: '마케팅·전략팀', roomKey: 'MKT_ROOM', role: 'SUPERVISOR', deskIdx: 0, hair: '#fb7185', shade: '#9f1239', shirt: '#881337', accessory: 'GLASSES' },
-  { id: 'wrk-mkt-01', name: '장건우 수석', deptTitle: '마케팅·전략팀', roomKey: 'MKT_ROOM', role: 'WORKER1', deskIdx: 1, hair: '#38bdf8', shade: '#0369a1', shirt: '#1e40af', accessory: 'GLASSES' },
-  { id: 'wrk-mkt-02', name: '권하윤 책임', deptTitle: '마케팅·전략팀', roomKey: 'MKT_ROOM', role: 'WORKER2', deskIdx: 2, hair: '#fbbf24', shade: '#b45309', shirt: '#047857', accessory: 'HEADSET' },
+  { id: 'ceo', name: '신영호 대표', deptTitle: '경영진', roomKey: 'MEETING_ROOM', role: 'CEO', deskIdx: 0, hair: '#94a3b8', shade: '#475569', shirt: '#1e293b', accessory: 'CROWN_PIN' },
+  { id: 'sup-hr-01', name: '윤지아 팀장', deptTitle: '인사·리서치팀', roomKey: 'HR_ROOM', role: 'SUPERVISOR', deskIdx: 0, hair: '#a85d63', shade: '#6e353a', shirt: '#475569', accessory: 'GLASSES' },
+  { id: 'wrk-hr-01', name: '박수아 수석', deptTitle: '인사·리서치팀', roomKey: 'HR_ROOM', role: 'WORKER1', deskIdx: 1, hair: '#3b4254', shade: '#1e2433', shirt: '#2b3954', accessory: 'GLASSES' },
+  { id: 'wrk-hr-02', name: '한채원 책임', deptTitle: '인사·리서치팀', roomKey: 'HR_ROOM', role: 'WORKER2', deskIdx: 2, hair: '#6d445c', shade: '#3f2234', shirt: '#3f2e56', accessory: 'HEADSET' },
+  { id: 'sup-dev-01', name: '임민서 팀장', deptTitle: 'SW개발팀', roomKey: 'DEV_ROOM', role: 'SUPERVISOR', deskIdx: 0, hair: '#4a3731', shade: '#291d1a', shirt: '#283c5c', accessory: 'HEADSET' },
+  { id: 'wrk-dev-01', name: '임지우 수석', deptTitle: 'SW개발팀', roomKey: 'DEV_ROOM', role: 'WORKER1', deskIdx: 1, hair: '#5c7352', shade: '#384731', shirt: '#244b47', accessory: 'GLASSES' },
+  { id: 'wrk-dev-02', name: '임유진 책임', deptTitle: 'SW개발팀', roomKey: 'DEV_ROOM', role: 'WORKER2', deskIdx: 2, hair: '#c46d87', shade: '#823c52', shirt: '#4c3566', accessory: 'HEADSET' },
+  { id: 'sup-qa-01', name: '임승현 팀장', deptTitle: '품질보증·QA팀', roomKey: 'QA_ROOM', role: 'SUPERVISOR', deskIdx: 0, hair: '#9c5a3c', shade: '#5e321e', shirt: '#284e46', accessory: 'GLASSES' },
+  { id: 'wrk-qa-01', name: '한도윤 수석', deptTitle: '품질보증·QA팀', roomKey: 'QA_ROOM', role: 'WORKER1', deskIdx: 1, hair: '#364156', shade: '#1e2536', shirt: '#283c5c', accessory: 'SAFETY_BADGE' },
+  { id: 'wrk-qa-02', name: '장지우 책임', deptTitle: '품질보증·QA팀', roomKey: 'QA_ROOM', role: 'WORKER2', deskIdx: 2, hair: '#69527a', shade: '#3e2d4c', shirt: '#38345e', accessory: 'HEADSET' },
+  { id: 'sup-fin-01', name: '정우성 팀장', deptTitle: '재무·데이터팀', roomKey: 'FIN_ROOM', role: 'SUPERVISOR', deskIdx: 0, hair: '#b88b58', shade: '#78542d', shirt: '#2b3954', accessory: 'GLASSES' },
+  { id: 'wrk-fin-01', name: '강현우 수석', deptTitle: '재무·데이터팀', roomKey: 'FIN_ROOM', role: 'WORKER1', deskIdx: 1, hair: '#3d4654', shade: '#212730', shirt: '#254740', accessory: 'GLASSES' },
+  { id: 'wrk-fin-02', name: '배수빈 책임', deptTitle: '재무·데이터팀', roomKey: 'FIN_ROOM', role: 'WORKER2', deskIdx: 2, hair: '#7c4d42', shade: '#4a2a23', shirt: '#433154', accessory: 'HEADSET' },
+  { id: 'sup-mkt-01', name: '조다은 팀장', deptTitle: '마케팅·전략팀', roomKey: 'MKT_ROOM', role: 'SUPERVISOR', deskIdx: 0, hair: '#8f4f45', shade: '#542923', shirt: '#523446', accessory: 'GLASSES' },
+  { id: 'wrk-mkt-01', name: '장건우 수석', deptTitle: '마케팅·전략팀', roomKey: 'MKT_ROOM', role: 'WORKER1', deskIdx: 1, hair: '#353945', shade: '#1c1f26', shirt: '#2b3954', accessory: 'GLASSES' },
+  { id: 'wrk-mkt-02', name: '권하윤 책임', deptTitle: '마케팅·전략팀', roomKey: 'MKT_ROOM', role: 'WORKER2', deskIdx: 2, hair: '#c98a4b', shade: '#855322', shirt: '#2d4a47', accessory: 'HEADSET' },
 ];
 
 function detectRoomByPoint(x: number, y: number): DeptRoomKey | 'CORRIDOR' {
@@ -779,8 +794,8 @@ export default function PixelRpgOffice({
         roomGlow.addColorStop(0.5, 'rgba(56, 189, 248, 0.09)');
         roomGlow.addColorStop(1, 'rgba(15, 23, 42, 0)');
       } else if (rKey === 'MEETING_ROOM') {
-        roomGlow.addColorStop(0, 'rgba(251, 191, 36, 0.18)');
-        roomGlow.addColorStop(0.55, 'rgba(245, 158, 11, 0.06)');
+        roomGlow.addColorStop(0, 'rgba(251, 191, 36, 0.16)');
+        roomGlow.addColorStop(0.55, 'rgba(245, 158, 11, 0.05)');
         roomGlow.addColorStop(1, 'rgba(15, 23, 42, 0)');
       } else {
         roomGlow.addColorStop(0, `${badgeColor}14`);
@@ -803,6 +818,143 @@ export default function PixelRpgOffice({
         ctx.roundRect(rx + 2, ry + 2, rw - 4, rh - 4, 8);
         ctx.stroke();
       }
+      ctx.restore();
+    };
+
+    // [15개 책상 좌석 Inpainting Mask]
+    // office_bg.png 에 그려져 있는 정적 캐릭터와 정적 이름표를 배경 바닥톤 패치 + 빈 임원용 가죽 의자 등받이로 완벽히 덮어써서
+    // 이중 머리(Ghosting)나 이동 시 분신술 현상이 발생하지 않도록 처리
+    const drawDeskInpaintMask = (
+      ctx: CanvasRenderingContext2D,
+      dx: number,
+      dy: number,
+      rKey: DeptRoomKey,
+      isOccupiedAtDesk: boolean
+    ) => {
+      const room = ROOMS[rKey];
+      ctx.save();
+
+      // 1) 정적 캐릭터 머리·어깨 영역을 해당 부서 바닥/벽면 톤 그라데이션 패치로 먼저 깨끗이 덮어쓰기
+      const bgPatchGrad = ctx.createLinearGradient(dx, dy - 35, dx, dy + 4);
+      bgPatchGrad.addColorStop(0, room.bgFloorShadow);
+      bgPatchGrad.addColorStop(1, room.bgFloorTone);
+      ctx.fillStyle = bgPatchGrad;
+      ctx.beginPath();
+      ctx.roundRect(dx - 23, dy - 34, 46, 38, 9);
+      ctx.fill();
+
+      // 부서 바닥 미세 결 라인 복원
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.14)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(dx - 21, dy - 22);
+      ctx.lineTo(dx + 21, dy - 22);
+      ctx.moveTo(dx - 21, dy - 12);
+      ctx.lineTo(dx + 21, dy - 12);
+      ctx.stroke();
+
+      // 2) 빈 임원용 가죽 의자 등받이 + 헤드레스트 (캐릭터가 걸어 나갔을 때 진짜 빈 의자만 남도록 구성)
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.32)';
+      ctx.beginPath();
+      ctx.ellipse(dx, dy - 4, 18, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 의자 외곽 다크 프레임
+      ctx.fillStyle = '#141c2b';
+      ctx.beginPath();
+      ctx.roundRect(dx - 15.5, dy - 28.5, 31, 27, 7);
+      ctx.fill();
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+
+      // 의자 등받이 가죽 쿠션
+      const chairGrad = ctx.createLinearGradient(dx, dy - 27, dx, dy - 3);
+      chairGrad.addColorStop(0, '#334155');
+      chairGrad.addColorStop(1, '#1e293b');
+      ctx.fillStyle = chairGrad;
+      ctx.beginPath();
+      ctx.roundRect(dx - 12.5, dy - 25.5, 25, 21, 5);
+      ctx.fill();
+
+      // 의자 헤드레스트 스티치 디테일
+      ctx.fillStyle = '#475569';
+      ctx.beginPath();
+      ctx.roundRect(dx - 9, dy - 24, 18, 4.5, 2.2);
+      ctx.fill();
+
+      // 3) 만약 캐릭터가 책상 자리를 비우고 이동 중이면, 책상 하단의 정적 이름표 박스 영역도 바닥/우드 몰딩으로 마스킹
+      if (!isOccupiedAtDesk) {
+        const tagY = dy + 25;
+        ctx.fillStyle = room.bgFloorTone;
+        ctx.beginPath();
+        ctx.roundRect(dx - 57, tagY - 1, 114, 29, 7);
+        ctx.fill();
+
+        // 책상 하단 그림자 및 슬림한 공석 배지
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.72)';
+        ctx.beginPath();
+        ctx.roundRect(dx - 44, tagY + 4, 88, 18, 9);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = 'bold 8.5px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('🪑 자리 이동 중', dx, tagY + 16);
+      }
+
+      ctx.restore();
+    };
+
+    // [중앙 회의실 신영호 대표 좌석 & 정적 이름표 Inpainting Mask]
+    // 배경 이미지에 그려진 정적 대표 캐릭터와 '신영호 대표 / 총괄 결재 대기' 박스를 우드 월 패널 + 원형 테이블 상판으로 자연스럽게 덮어쓰기
+    const drawCeoInpaintMask = (ctx: CanvasRenderingContext2D) => {
+      const cx = MEETING_SEATS.CEO.x;
+      const cy = MEETING_SEATS.CEO.y;
+      ctx.save();
+
+      // 1) 대표 좌석 뒤쪽 우드 월 패널 & 빈 임원용 의자 등받이 마스킹
+      const wallGrad = ctx.createLinearGradient(cx, cy - 34, cx, cy + 8);
+      wallGrad.addColorStop(0, '#8e4e25');
+      wallGrad.addColorStop(1, '#6c3818');
+      ctx.fillStyle = wallGrad;
+      ctx.beginPath();
+      ctx.roundRect(cx - 22, cy - 33, 44, 38, 8);
+      ctx.fill();
+
+      // 대표용 하이백 가죽 의자
+      ctx.fillStyle = '#0f172a';
+      ctx.beginPath();
+      ctx.roundRect(cx - 16, cy - 29, 32, 27, 6);
+      ctx.fill();
+      ctx.strokeStyle = '#fbbf24';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+      ctx.fillStyle = '#1e293b';
+      ctx.beginPath();
+      ctx.roundRect(cx - 13, cy - 26, 26, 22, 4);
+      ctx.fill();
+
+      // 2) 배경 이미지의 기존 '신영호 대표 / 총괄 결재 대기' 정적 박스 영역(x: 496..620, y: 468..507)을
+      // 회의실 원목 테이블 상판 우드 그라데이션(#b45309 ~ #92400e) 및 골드 링 라인으로 자연스럽게 마스킹
+      const tableMaskGrad = ctx.createLinearGradient(cx - 64, 469, cx + 64, 508);
+      tableMaskGrad.addColorStop(0, '#92400e');
+      tableMaskGrad.addColorStop(0.5, '#b45309');
+      tableMaskGrad.addColorStop(1, '#92400e');
+      ctx.fillStyle = tableMaskGrad;
+      ctx.beginPath();
+      ctx.roundRect(cx - 63, 469, 126, 38, 10);
+      ctx.fill();
+
+      ctx.strokeStyle = 'rgba(253, 224, 71, 0.45)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(cx - 58, 504);
+      ctx.quadraticCurveTo(cx, 496, cx + 58, 504);
+      ctx.stroke();
+
       ctx.restore();
     };
 
@@ -834,7 +986,6 @@ export default function PixelRpgOffice({
         }
       }
 
-      // 부서실 상단 벽면 패널
       ctx.fillStyle = '#0f172a';
       ctx.fillRect(rx, ry, rw, 22);
       ctx.fillStyle = '#1e293b';
@@ -842,7 +993,6 @@ export default function PixelRpgOffice({
       ctx.fillStyle = 'rgba(0,0,0,0.35)';
       ctx.fillRect(rx, ry + 28, rw, 7);
 
-      // 중앙 조명 은은한 네온/앰비언트 글로우 (createRadialGradient)
       const centerX = rx + rw / 2;
       const centerY = ry + rh / 2 + 12;
       const lightRadius = Math.max(rw, rh) * 0.64;
@@ -876,7 +1026,6 @@ export default function PixelRpgOffice({
       ctx.restore();
     };
 
-    // 입체적인 메탈 몰딩 프레임과 4방 코너 볼트 (폴백용)
     const drawMetalMoldingFrame = (
       ctx: CanvasRenderingContext2D,
       rx: number,
@@ -980,7 +1129,6 @@ export default function PixelRpgOffice({
       ctx.fill();
     };
 
-    // 부서별 특화 아케이드 배경 디테일 렌더링 (폴백용)
     const drawOfficeProps = (
       ctx: CanvasRenderingContext2D,
       rx: number,
@@ -1000,46 +1148,6 @@ export default function PixelRpgOffice({
         ctx.strokeStyle = '#38bdf8';
         ctx.lineWidth = 2;
         ctx.strokeRect(bx, by, 62, 34);
-
-        const pcx = bx + 18;
-        const pcy = by + 17;
-        ctx.fillStyle = '#38bdf8';
-        ctx.beginPath();
-        ctx.arc(pcx, pcy, 10, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#f43f5e';
-        ctx.beginPath();
-        ctx.moveTo(pcx, pcy);
-        ctx.arc(pcx, pcy, 10, -0.5, 1.3);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = '#fbbf24';
-        ctx.beginPath();
-        ctx.moveTo(pcx, pcy);
-        ctx.arc(pcx, pcy, 10, 1.3, 2.5);
-        ctx.closePath();
-        ctx.fill();
-
-        ctx.fillStyle = '#0ea5e9';
-        ctx.fillRect(bx + 34, by + 7, 20, 4);
-        ctx.fillStyle = '#10b981';
-        ctx.fillRect(bx + 34, by + 15, 15, 4);
-        ctx.fillStyle = '#f59e0b';
-        ctx.fillRect(bx + 34, by + 23, 22, 4);
-
-        const sx = rx + 52;
-        const sy = ry + rh - 44;
-        ctx.fillStyle = 'rgba(0,0,0,0.35)';
-        ctx.fillRect(sx - 2, sy + 4, 68, 24);
-        ctx.fillStyle = '#0369a1';
-        ctx.beginPath();
-        ctx.roundRect(sx, sy, 64, 22, 6);
-        ctx.fill();
-        ctx.fillStyle = '#0ea5e9';
-        ctx.beginPath();
-        ctx.roundRect(sx + 5, sy + 5, 25, 14, 4);
-        ctx.roundRect(sx + 34, sy + 5, 25, 14, 4);
-        ctx.fill();
       } else if (rKey === 'DEV_ROOM') {
         const mx = rx + rw - 88;
         const my = ry + 16;
@@ -1048,48 +1156,6 @@ export default function PixelRpgOffice({
         ctx.strokeStyle = '#818cf8';
         ctx.lineWidth = 2;
         ctx.strokeRect(mx, my, 74, 38);
-        const codeColors = ['#34d399', '#38bdf8', '#f472b6', '#fbbf24', '#a78bfa'];
-        for (let i = 0; i < 5; i++) {
-          ctx.fillStyle = codeColors[(i + Math.floor(f / 10)) % codeColors.length];
-          const w = 16 + ((i * 13 + Math.floor(f / 6)) % 36);
-          ctx.fillRect(mx + 6 + (i % 2) * 6, my + 6 + i * 6, w, 3);
-        }
-
-        const hx = rx + 36;
-        const hy = ry + 56;
-        ctx.fillStyle = '#1e293b';
-        ctx.fillRect(hx - 12, hy + 10, 24, 10);
-        ctx.fillStyle = '#38bdf8';
-        ctx.beginPath();
-        ctx.ellipse(hx, hy + 10, 12, 4, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        const floatY = hy - 4 + Math.sin(f * 0.08) * 3.5;
-        const holoGlow = ctx.createRadialGradient(hx, floatY, 2, hx, floatY, 20);
-        holoGlow.addColorStop(0, 'rgba(56, 189, 248, 0.7)');
-        holoGlow.addColorStop(1, 'rgba(56, 189, 248, 0)');
-        ctx.fillStyle = holoGlow;
-        ctx.beginPath();
-        ctx.arc(hx, floatY, 20, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.strokeStyle = '#67e8f9';
-        ctx.lineWidth = 1.5;
-        ctx.strokeRect(hx - 7, floatY - 7, 12, 12);
-        ctx.strokeStyle = '#c084fc';
-        ctx.strokeRect(hx - 3, floatY - 11, 12, 12);
-
-        const rbx = rx + 82 + Math.sin(f * 0.03) * 8;
-        const rby = ry + rh - 34;
-        ctx.fillStyle = '#cbd5e1';
-        ctx.beginPath();
-        ctx.roundRect(rbx - 9, rby - 12, 18, 16, 5);
-        ctx.fill();
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(rbx - 6, rby - 9, 12, 6);
-        ctx.fillStyle = '#38bdf8';
-        ctx.fillRect(rbx - 4, rby - 7, 3, 2);
-        ctx.fillRect(rbx + 1, rby - 7, 3, 2);
       } else if (rKey === 'QA_ROOM') {
         const cx = rx + 18;
         const cy = ry + 16;
@@ -1100,74 +1166,11 @@ export default function PixelRpgOffice({
         ctx.strokeStyle = '#34d399';
         ctx.lineWidth = 2;
         ctx.strokeRect(cx, cy, cw, ch);
-
-        ctx.fillStyle = '#334155';
-        ctx.fillRect(cx + 4, cy + 23, cw - 8, 7);
-        for (let r = 0; r < 6; r++) {
-          ctx.fillStyle = '#94a3b8';
-          ctx.beginPath();
-          ctx.arc(cx + 10 + r * 15, cy + 26.5, 2, 0, Math.PI * 2);
-          ctx.fill();
-        }
         for (let b = 0; b < 3; b++) {
           const bx = cx + 8 + ((b * 30 + Math.floor(f * 0.5)) % (cw - 24));
           ctx.fillStyle = b % 2 === 0 ? '#38bdf8' : '#fbbf24';
           ctx.fillRect(bx, cy + 12, 12, 11);
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(bx + 3, cy + 14, 6, 3);
         }
-        ctx.fillStyle = 'rgba(52, 211, 153, 0.45)';
-        ctx.fillRect(cx + cw / 2 - 2, cy + 3, 4, 20);
-
-        const qbx = rx + rw - 68;
-        const qby = ry + 18;
-        ctx.fillStyle = '#f8fafc';
-        ctx.fillRect(qbx, qby, 54, 34);
-        ctx.strokeStyle = '#10b981';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(qbx, qby, 54, 34);
-        for (let i = 0; i < 3; i++) {
-          ctx.fillStyle = '#10b981';
-          ctx.fillRect(qbx + 5, qby + 6 + i * 9, 6, 6);
-          ctx.fillStyle = '#334155';
-          ctx.fillRect(qbx + 15, qby + 8 + i * 9, 32, 3);
-        }
-      } else if (rKey === 'FIN_ROOM') {
-        const fbx = rx + rw - 82;
-        const fby = ry + 18;
-        ctx.fillStyle = '#090d16';
-        ctx.fillRect(fbx, fby, 68, 36);
-        ctx.strokeStyle = '#fbbf24';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(fbx, fby, 68, 36);
-
-        const bars = [10, 15, 13, 21, 27];
-        bars.forEach((bh, idx) => {
-          ctx.fillStyle = idx === 4 ? '#34d399' : '#0ea5e9';
-          ctx.fillRect(fbx + 8 + idx * 11, fby + 31 - bh, 7, bh);
-        });
-        ctx.strokeStyle = '#fde047';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(fbx + 10, fby + 24);
-        ctx.lineTo(fbx + 22, fby + 18);
-        ctx.lineTo(fbx + 34, fby + 20);
-        ctx.lineTo(fbx + 46, fby + 11);
-        ctx.lineTo(fbx + 56, fby + 6);
-        ctx.stroke();
-      } else if (rKey === 'MKT_ROOM') {
-        const mx = rx + 20;
-        const my = ry + 22;
-        ctx.fillStyle = '#0c4a6e';
-        ctx.fillRect(mx, my, 76, 36);
-        ctx.strokeStyle = '#38bdf8';
-        ctx.lineWidth = 1.5;
-        ctx.strokeRect(mx, my, 76, 36);
-        ctx.fillStyle = '#34d399';
-        ctx.beginPath();
-        ctx.ellipse(mx + 18, my + 14, 9, 6, 0.2, 0, Math.PI * 2);
-        ctx.ellipse(mx + 46, my + 13, 14, 7, 0, 0, Math.PI * 2);
-        ctx.fill();
       }
     };
 
@@ -1226,7 +1229,7 @@ export default function PixelRpgOffice({
       }
     };
 
-    // 책상 렌더링: office_bg.png 로드 시에는 원화 가구를 가리지 않고 모니터 네온 블룸(createRadialGradient)과 전경 모니터만 투명하게 합성
+    // 책상 상판 + 모니터 뒷면 + 네온 블룸 렌더링 (캐릭터 하반신을 자연스럽게 가려 착석감 완성)
     const drawDesk = (
       ctx: CanvasRenderingContext2D,
       dx: number,
@@ -1237,7 +1240,35 @@ export default function PixelRpgOffice({
       bgLoaded: boolean
     ) => {
       if (bgLoaded) {
-        // 작업 중인 책상 모니터 위치에 은은하게 맥동하는 시안/에메랄드 네온 블룸 광원만 투명하게 오버레이
+        // 1) 책상 우드 상판 전면부 정합 (캐릭터 하체와 의자 하단을 자연스럽게 커버)
+        const woodGrad = ctx.createLinearGradient(dx - 38, dy + 11, dx + 38, dy + 24);
+        woodGrad.addColorStop(0, '#d99b52');
+        woodGrad.addColorStop(0.65, '#b8732e');
+        woodGrad.addColorStop(1, '#7c4316');
+        ctx.fillStyle = woodGrad;
+        ctx.beginPath();
+        ctx.roundRect(dx - 38, dy + 11, 76, 14, 3);
+        ctx.fill();
+        ctx.strokeStyle = '#451a03';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // 좌측 스탠드 조명 은은한 웜 글로우
+        const lampGlow = ctx.createRadialGradient(dx - 26, dy + 6, 1, dx - 26, dy + 6, 16);
+        lampGlow.addColorStop(0, 'rgba(253, 224, 71, 0.34)');
+        lampGlow.addColorStop(1, 'rgba(253, 224, 71, 0)');
+        ctx.fillStyle = lampGlow;
+        ctx.beginPath();
+        ctx.arc(dx - 26, dy + 6, 16, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 우측 미니 서류철 디테일
+        ctx.fillStyle = '#2563eb';
+        ctx.fillRect(dx + 22, dy + 4, 6, 10);
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillRect(dx + 29, dy + 4, 5, 10);
+
+        // 2) 작업 중인 책상 모니터 위치에 은은하게 맥동하는 시안/에메랄드 네온 블룸 광원
         if (isWorking || isSelectedRoom) {
           const bloomRadius = isWorking ? 42 + Math.sin(f * 0.14) * 5 : 26;
           const monitorBloom = ctx.createRadialGradient(dx, dy + 6, 2, dx, dy + 6, bloomRadius);
@@ -1257,26 +1288,30 @@ export default function PixelRpgOffice({
           ctx.restore();
         }
 
-        // 캐릭터가 책상 뒤에 자연스럽게 앉아 보이도록 모니터 후면 베젤만 깔끔하게 정합
-        ctx.fillStyle = '#0f172a';
+        // 3) 모니터 뒷면 베젤 & 스탠드
+        ctx.fillStyle = '#1e293b';
         ctx.beginPath();
-        ctx.roundRect(dx - 16, dy + 1, 32, 16, 3);
+        ctx.roundRect(dx - 16, dy - 1, 32, 15, 3);
         ctx.fill();
-        ctx.strokeStyle = isWorking ? '#34d399' : '#334155';
-        ctx.lineWidth = 1.2;
+        ctx.strokeStyle = isWorking ? '#34d399' : '#0f172a';
+        ctx.lineWidth = 1.3;
         ctx.stroke();
 
-        // 모니터 스탠드
-        ctx.fillStyle = '#1e293b';
-        ctx.fillRect(dx - 3, dy + 17, 6, 4);
-        ctx.fillRect(dx - 8, dy + 20, 16, 2);
+        ctx.fillStyle = '#334155';
+        ctx.beginPath();
+        ctx.roundRect(dx - 13, dy + 1.5, 26, 10, 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(dx - 3, dy + 14, 6, 4);
+        ctx.fillRect(dx - 9, dy + 17, 18, 2.5);
 
         if (isWorking) {
           const lineY = f % 8;
           ctx.fillStyle = '#34d399';
-          ctx.fillRect(dx - 12, dy + 5 + (lineY % 4), 16, 2);
+          ctx.fillRect(dx - 10, dy + 3.5 + (lineY % 4), 14, 1.8);
           ctx.fillStyle = '#38bdf8';
-          ctx.fillRect(dx - 12, dy + 11, 22, 2);
+          ctx.fillRect(dx - 10, dy + 8.5, 20, 1.8);
         }
         return;
       }
@@ -1304,78 +1339,14 @@ export default function PixelRpgOffice({
       ctx.fillStyle = '#451a03';
       ctx.fillRect(dx - 36, dy + 28, 72, 5);
 
-      const lx = dx - 31;
-      const ly = dy + 8;
-      ctx.fillStyle = '#475569';
-      ctx.fillRect(lx - 3, ly + 8, 6, 3);
-      ctx.strokeStyle = '#94a3b8';
-      ctx.lineWidth = 1.8;
-      ctx.beginPath();
-      ctx.moveTo(lx, ly + 8);
-      ctx.lineTo(lx - 2, ly + 1);
-      ctx.lineTo(lx + 4, ly - 2);
-      ctx.stroke();
-      ctx.fillStyle = '#fbbf24';
-      ctx.beginPath();
-      ctx.arc(lx + 5, ly - 1, 3.2, Math.PI * 0.8, Math.PI * 2.2);
-      ctx.fill();
-
-      const lampGlow = ctx.createRadialGradient(lx + 6, ly + 6, 1, lx + 6, ly + 6, 18);
-      lampGlow.addColorStop(0, 'rgba(253, 224, 71, 0.38)');
-      lampGlow.addColorStop(1, 'rgba(253, 224, 71, 0)');
-      ctx.fillStyle = lampGlow;
-      ctx.beginPath();
-      ctx.arc(lx + 6, ly + 6, 18, 0, Math.PI * 2);
-      ctx.fill();
-
-      if (isWorking || isSelectedRoom) {
-        const bloomRadius = isWorking ? 38 + Math.sin(f * 0.14) * 4 : 24;
-        const monitorBloom = ctx.createRadialGradient(dx - 4, dy + 8, 2, dx - 4, dy + 8, bloomRadius);
-        if (isWorking) {
-          monitorBloom.addColorStop(0, 'rgba(52, 211, 153, 0.5)');
-          monitorBloom.addColorStop(0.45, 'rgba(56, 189, 248, 0.25)');
-          monitorBloom.addColorStop(1, 'rgba(56, 189, 248, 0)');
-        } else {
-          monitorBloom.addColorStop(0, 'rgba(56, 189, 248, 0.18)');
-          monitorBloom.addColorStop(1, 'rgba(56, 189, 248, 0)');
-        }
-        ctx.save();
-        ctx.fillStyle = monitorBloom;
-        ctx.beginPath();
-        ctx.arc(dx - 4, dy + 8, bloomRadius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      }
-
       ctx.fillStyle = '#0f172a';
       ctx.fillRect(dx - 22, dy, 34, 17);
       ctx.fillStyle = isWorking ? '#022c22' : isSelectedRoom ? '#1e293b' : '#334155';
       ctx.fillRect(dx - 20, dy + 2, 30, 13);
-
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(dx + 14, dy + 2, 16, 14);
-      ctx.fillStyle = isWorking ? '#0c4a6e' : '#1e293b';
-      ctx.fillRect(dx + 16, dy + 4, 12, 10);
-
-      ctx.fillStyle = '#cbd5e1';
-      ctx.fillRect(dx - 12, dy + 19, 20, 4);
-      ctx.fillStyle = '#f8fafc';
-      ctx.fillRect(dx + 26, dy + 17, 6, 7);
-      ctx.fillStyle = '#d97706';
-      ctx.fillRect(dx + 27, dy + 18, 4, 3);
-
-      if (isWorking) {
-        const lineY = f % 8;
-        ctx.fillStyle = '#34d399';
-        ctx.fillRect(dx - 18, dy + 4 + (lineY % 5), 18, 2);
-        ctx.fillStyle = '#38bdf8';
-        ctx.fillRect(dx - 18, dy + 9, 24, 2);
-        ctx.fillStyle = '#67e8f9';
-        ctx.fillRect(dx + 18, dy + 6 + (lineY % 4), 8, 1.5);
-      }
     };
 
-    // 2.5등신 SD(Chibi) 아케이드 스타일 캐릭터 렌더링 (풍성한 헤어 볼륨, 엔젤링 하이라이트, 반짝이는 눈동자, 안경/헤드셋)
+    // [office_bg.png 일러스트 화풍과 일체화된 2.5등신 SD 캐릭터 렌더링]
+    // 둥근 곡선(arc, quadraticCurveTo, ellipse) 기반의 부드러운 얼굴 윤곽과 자연스러운 그라데이션 헤어 셰이딩 적용
     const drawStaffCharacter = (
       ctx: CanvasRenderingContext2D,
       ag: OfficeStaff,
@@ -1385,24 +1356,22 @@ export default function PixelRpgOffice({
       f: number
     ) => {
       const walkCycle = isWalking ? Math.sin(f * 0.22 * speedRef.current + idx) : 0;
-      const idleBreath = Math.sin(f * 0.08 + idx) * 0.85;
-      const workBob = isWorkingDesk ? Math.sin(f * 0.32 + idx) * 1.65 : idleBreath;
-      const bounceY = isWalking ? Math.abs(walkCycle) * -4.0 : workBob;
+      const idleBreath = Math.sin(f * 0.075 + idx) * 0.65;
+      const workBob = isWorkingDesk ? Math.sin(f * 0.28 + idx) * 1.35 : idleBreath;
+      const bounceY = isWalking ? Math.abs(walkCycle) * -3.6 : workBob;
 
-      // 보행 시 미세한 좌우 스웨이(Sway)
       const swayX = isWalking
-        ? Math.sin(f * 0.22 * speedRef.current + idx) * 1.8
+        ? Math.sin(f * 0.22 * speedRef.current + idx) * 1.5
         : isWorkingDesk
-        ? Math.sin(f * 0.16 + idx) * 0.65
+        ? Math.sin(f * 0.15 + idx) * 0.5
         : 0;
 
-      // 숨쉬기 탄성 및 보행 탄성 (Squash & Stretch)
       const squashPhase = isWalking
-        ? Math.cos(f * 0.44 * speedRef.current + idx) * 0.065
+        ? Math.cos(f * 0.44 * speedRef.current + idx) * 0.055
         : isWorkingDesk
-        ? Math.sin(f * 0.32 + idx) * 0.038
-        : Math.sin(f * 0.08 + idx) * 0.028;
-      const scaleX = 1 - squashPhase * 0.75;
+        ? Math.sin(f * 0.28 + idx) * 0.03
+        : Math.sin(f * 0.075 + idx) * 0.02;
+      const scaleX = 1 - squashPhase * 0.7;
       const scaleY = 1 + squashPhase;
 
       const cx = Math.round(ag.x + swayX);
@@ -1410,242 +1379,295 @@ export default function PixelRpgOffice({
 
       // 바닥 그림자 & 선택된 팀 오라
       if (ag.isSelectedTeam) {
-        const shadowGlow = ctx.createRadialGradient(ag.x, ag.y + 13, 2, ag.x, ag.y + 13, 24);
+        const shadowGlow = ctx.createRadialGradient(ag.x, ag.y + 12, 2, ag.x, ag.y + 12, 22);
         if (ag.taskLabel.includes('반려')) {
-          shadowGlow.addColorStop(0, 'rgba(244, 63, 94, 0.72)');
+          shadowGlow.addColorStop(0, 'rgba(244, 63, 94, 0.65)');
           shadowGlow.addColorStop(1, 'rgba(244, 63, 94, 0)');
         } else if (ag.isShelfMode) {
-          shadowGlow.addColorStop(0, 'rgba(250, 204, 21, 0.72)');
+          shadowGlow.addColorStop(0, 'rgba(250, 204, 21, 0.65)');
           shadowGlow.addColorStop(1, 'rgba(250, 204, 21, 0)');
         } else {
-          shadowGlow.addColorStop(0, 'rgba(16, 185, 129, 0.62)');
+          shadowGlow.addColorStop(0, 'rgba(16, 185, 129, 0.52)');
           shadowGlow.addColorStop(1, 'rgba(16, 185, 129, 0)');
         }
         ctx.fillStyle = shadowGlow;
         ctx.beginPath();
-        ctx.ellipse(ag.x, ag.y + 13, 22, 8.5, 0, 0, Math.PI * 2);
+        ctx.ellipse(ag.x, ag.y + 12, 20, 7.5, 0, 0, Math.PI * 2);
         ctx.fill();
       } else {
-        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        ctx.fillStyle = 'rgba(0,0,0,0.28)';
         ctx.beginPath();
-        ctx.ellipse(ag.x, ag.y + 13, 13, 5, 0, 0, Math.PI * 2);
+        ctx.ellipse(ag.x, ag.y + 12, 12, 4.5, 0, 0, Math.PI * 2);
         ctx.fill();
       }
 
       const pivotX = cx;
-      const pivotY = ag.y + 12;
+      const pivotY = ag.y + 11;
       ctx.save();
       ctx.translate(pivotX, pivotY);
       ctx.scale(scaleX, scaleY);
       ctx.translate(-pivotX, -pivotY);
 
       // SD 다리 & 신발
-      const leftLegY = isWalking ? Math.round(walkCycle * 3.8) : 0;
-      const rightLegY = isWalking ? Math.round(-walkCycle * 3.8) : 0;
-      ctx.fillStyle = '#0f172a';
+      const leftLegY = isWalking ? Math.round(walkCycle * 3.5) : 0;
+      const rightLegY = isWalking ? Math.round(-walkCycle * 3.5) : 0;
+      ctx.fillStyle = '#1e293b';
       ctx.beginPath();
-      ctx.roundRect(cx - 7, cy + 4 + leftLegY, 5.5, 8, 2.2);
-      ctx.roundRect(cx + 1.5, cy + 4 + rightLegY, 5.5, 8, 2.2);
+      ctx.roundRect(cx - 6.5, cy + 4 + leftLegY, 5, 7.5, 2.5);
+      ctx.roundRect(cx + 1.5, cy + 4 + rightLegY, 5, 7.5, 2.5);
       ctx.fill();
 
-      // SD 상체 자켓 & 셔츠/넥타이
-      ctx.fillStyle = ag.shirtColor;
+      // SD 상체 정장 자켓 (둥근 어깨 곡선)
+      const suitGrad = ctx.createLinearGradient(cx, cy - 7, cx, cy + 7);
+      suitGrad.addColorStop(0, ag.shirtColor);
+      suitGrad.addColorStop(1, '#0f172a');
+      ctx.fillStyle = suitGrad;
       ctx.beginPath();
-      ctx.roundRect(cx - 11.5, cy - 6.5, 23, 13, 4.5);
+      ctx.roundRect(cx - 11, cy - 6.5, 22, 12.5, 5.5);
       ctx.fill();
-      ctx.strokeStyle = '#0f172a';
-      ctx.lineWidth = 1.4;
+      ctx.strokeStyle = '#1e1b18';
+      ctx.lineWidth = 1.3;
       ctx.stroke();
 
-      // 화이트 칼라 셔츠 & 직급별 넥타이/스카프
+      // 화이트 셔츠 칼라 & 넥타이
       ctx.fillStyle = '#f8fafc';
       ctx.beginPath();
       ctx.moveTo(cx - 3.5, cy - 6);
       ctx.lineTo(cx + 3.5, cy - 6);
-      ctx.lineTo(cx, cy + 1);
+      ctx.lineTo(cx, cy + 1.5);
       ctx.closePath();
       ctx.fill();
-      ctx.fillStyle = ag.role === 'CEO' ? '#ef4444' : ag.role === 'SUPERVISOR' ? '#fbbf24' : '#38bdf8';
-      ctx.fillRect(cx - 1.2, cy - 4, 2.4, 6.5);
+      ctx.fillStyle = ag.role === 'CEO' ? '#dc2626' : ag.role === 'SUPERVISOR' ? '#d97706' : '#2563eb';
+      ctx.fillRect(cx - 1.1, cy - 4.2, 2.2, 6);
 
       // SD 팔과 손
-      const armOffset = isWorkingDesk ? Math.round(Math.sin(f * 0.5 + idx) * 2.8) : Math.round(walkCycle * 2.4);
+      const armOffset = isWorkingDesk ? Math.round(Math.sin(f * 0.45 + idx) * 2.2) : Math.round(walkCycle * 2.2);
       ctx.fillStyle = ag.shirtColor;
       ctx.beginPath();
-      ctx.roundRect(cx - 15.5, cy - 4.5 + armOffset, 4.8, 9, 2.2);
-      ctx.roundRect(cx + 10.7, cy - 4.5 - armOffset, 4.8, 9, 2.2);
+      ctx.roundRect(cx - 14.5, cy - 4.5 + armOffset, 4.5, 8.5, 2.5);
+      ctx.roundRect(cx + 10.0, cy - 4.5 - armOffset, 4.5, 8.5, 2.5);
       ctx.fill();
-      ctx.strokeStyle = '#0f172a';
+      ctx.strokeStyle = '#1e1b18';
       ctx.lineWidth = 1;
       ctx.stroke();
 
-      ctx.fillStyle = '#fed7aa';
+      ctx.fillStyle = '#fde2c8';
       ctx.beginPath();
-      ctx.arc(cx - 13.1, cy + 5.2 + armOffset, 2.3, 0, Math.PI * 2);
-      ctx.arc(cx + 13.1, cy + 5.2 - armOffset, 2.3, 0, Math.PI * 2);
+      ctx.arc(cx - 12.2, cy + 4.8 + armOffset, 2.1, 0, Math.PI * 2);
+      ctx.arc(cx + 12.2, cy + 4.8 - armOffset, 2.1, 0, Math.PI * 2);
       ctx.fill();
 
-      // 2.5등신 SD 헤드 아웃라인 & 풍성한 후면 헤어 볼륨
-      ctx.fillStyle = '#0f172a';
-      ctx.beginPath();
-      ctx.roundRect(cx - 16, cy - 30.5, 32, 26, 9);
-      ctx.fill();
-
-      // 캐릭터별 사이드 번/포니테일 볼륨 디테일
+      // 캐릭터별 후면 헤어 번(Bun) / 포니테일(Ponytail) 곡선 실루엣
       if (idx % 3 === 1 && ag.role !== 'CEO') {
         ctx.fillStyle = ag.hairShade;
         ctx.beginPath();
-        ctx.arc(cx, cy - 30, 6.5, 0, Math.PI * 2);
+        ctx.arc(cx, cy - 29.5, 5.8, 0, Math.PI * 2);
         ctx.fill();
-        ctx.strokeStyle = '#0f172a';
+        ctx.strokeStyle = '#231815';
         ctx.lineWidth = 1.2;
         ctx.stroke();
       } else if (idx % 3 === 2 && ag.role !== 'CEO') {
-        ctx.fillStyle = ag.hairColor;
+        ctx.fillStyle = ag.hairShade;
         ctx.beginPath();
-        ctx.ellipse(cx + 14.5, cy - 20, 4.5, 7, 0.35, 0, Math.PI * 2);
+        ctx.ellipse(cx + 13.5, cy - 19.5, 4.2, 6.8, 0.3, 0, Math.PI * 2);
         ctx.fill();
-        ctx.strokeStyle = '#0f172a';
+        ctx.strokeStyle = '#231815';
         ctx.lineWidth = 1.2;
         ctx.stroke();
       }
 
+      // 둥근 후면 헤어 돔 (quadraticCurveTo + arc 기반 부드러운 원형 실루엣)
+      const hairGrad = ctx.createLinearGradient(cx, cy - 30, cx, cy - 7);
+      hairGrad.addColorStop(0, ag.hairColor);
+      hairGrad.addColorStop(1, ag.hairShade);
+
+      ctx.fillStyle = hairGrad;
+      ctx.beginPath();
+      ctx.arc(cx, cy - 18.5, 14.8, Math.PI * 0.85, Math.PI * 2.15);
+      ctx.quadraticCurveTo(cx + 15.2, cy - 9, cx + 11, cy - 6.5);
+      ctx.lineTo(cx - 11, cy - 6.5);
+      ctx.quadraticCurveTo(cx - 15.2, cy - 9, cx - 13.2, cy - 12);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#231815';
+      ctx.lineWidth = 1.35;
+      ctx.stroke();
+
       if (ag.facing === 'UP') {
-        ctx.fillStyle = ag.hairColor;
+        // 뒷모습 헤어 결 & 부드러운 엔젤링 아치
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.28)';
+        ctx.lineWidth = 2.2;
         ctx.beginPath();
-        ctx.roundRect(cx - 14.8, cy - 29.2, 29.6, 23.8, 8);
-        ctx.fill();
-        ctx.fillStyle = ag.hairShade;
-        ctx.fillRect(cx - 13.8, cy - 11.5, 27.6, 6);
-        // 헤어 엔젤링 하이라이트
-        ctx.fillStyle = 'rgba(255,255,255,0.52)';
-        ctx.beginPath();
-        ctx.ellipse(cx, cy - 22.5, 9.5, 2.6, 0, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.arc(cx, cy - 18, 9.5, Math.PI * 1.18, Math.PI * 1.82);
+        ctx.stroke();
       } else {
-        // 따뜻한 살구빛 SD 얼굴 피부
-        ctx.fillStyle = '#ffedd5';
+        // 양쪽 귀 (부드러운 타원)
+        ctx.fillStyle = '#fbd8be';
         ctx.beginPath();
-        ctx.roundRect(cx - 13, cy - 24.5, 26, 19.5, 6.5);
+        ctx.ellipse(cx - 12.2, cy - 14.2, 2.2, 3.0, 0, 0, Math.PI * 2);
+        ctx.ellipse(cx + 12.2, cy - 14.2, 2.2, 3.0, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        const eyeShiftX = ag.facing === 'LEFT' ? -2 : ag.facing === 'RIGHT' ? 2 : 0;
-
-        // 발그레한 볼터치
-        ctx.fillStyle = 'rgba(251, 113, 133, 0.65)';
+        // 둥글고 부드러운 2.5등신 얼굴 윤곽 (네모난 블록 느낌 없이 자연스러운 턱선 곡선)
+        const skinGrad = ctx.createLinearGradient(cx, cy - 23, cx, cy - 6);
+        skinGrad.addColorStop(0, '#fff3e6');
+        skinGrad.addColorStop(1, '#fbd6b8');
+        ctx.fillStyle = skinGrad;
         ctx.beginPath();
-        ctx.ellipse(cx - 8.8 + eyeShiftX, cy - 10.5, 3.0, 1.7, 0, 0, Math.PI * 2);
-        ctx.ellipse(cx + 8.8 + eyeShiftX, cy - 10.5, 3.0, 1.7, 0, 0, Math.PI * 2);
+        ctx.moveTo(cx - 11.8, cy - 19.5);
+        ctx.quadraticCurveTo(cx - 12.2, cy - 10.5, cx - 7.5, cy - 7.2);
+        ctx.quadraticCurveTo(cx, cy - 4.8, cx + 7.5, cy - 7.2);
+        ctx.quadraticCurveTo(cx + 12.2, cy - 10.5, cx + 11.8, cy - 19.5);
+        ctx.quadraticCurveTo(cx, cy - 23.5, cx - 11.8, cy - 19.5);
+        ctx.closePath();
         ctx.fill();
-
-        // 미소 입매
-        ctx.strokeStyle = '#9a3412';
-        ctx.lineWidth = 1.1;
-        ctx.beginPath();
-        ctx.arc(cx + eyeShiftX, cy - 9.8, 1.8, 0.15 * Math.PI, 0.85 * Math.PI);
+        ctx.strokeStyle = '#3b231a';
+        ctx.lineWidth = 1.05;
         ctx.stroke();
 
-        // 반짝이는 큰 아케이드 눈동자 (듀얼 스타라이트 하이라이트)
+        const eyeShiftX = ag.facing === 'LEFT' ? -1.8 : ag.facing === 'RIGHT' ? 1.8 : 0;
+
+        // 은은한 살구빛 볼터치
+        ctx.fillStyle = 'rgba(244, 114, 130, 0.45)';
+        ctx.beginPath();
+        ctx.ellipse(cx - 7.8 + eyeShiftX, cy - 10.5, 2.6, 1.4, 0, 0, Math.PI * 2);
+        ctx.ellipse(cx + 7.8 + eyeShiftX, cy - 10.5, 2.6, 1.4, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 자연스러운 미소 입매
+        ctx.strokeStyle = '#7c3f2c';
+        ctx.lineWidth = 1.1;
+        ctx.beginPath();
+        ctx.arc(cx + eyeShiftX, cy - 9.6, 1.6, 0.15 * Math.PI, 0.85 * Math.PI);
+        ctx.stroke();
+
+        // 일러스트 톤의 둥근 눈동자 & 속눈썹
         if ((f + idx * 31) % 160 > 5) {
-          // 눈동자 베이스 + 속눈썹 라인
-          ctx.fillStyle = '#0f172a';
+          // 눈동자 베이스 (부드러운 타원)
+          ctx.fillStyle = '#1e1b24';
           ctx.beginPath();
-          ctx.roundRect(cx - 8.0 + eyeShiftX, cy - 17.0, 4.6, 5.6, 1.8);
-          ctx.roundRect(cx + 3.4 + eyeShiftX, cy - 17.0, 4.6, 5.6, 1.8);
+          ctx.ellipse(cx - 5.2 + eyeShiftX, cy - 13.8, 2.1, 2.6, 0, 0, Math.PI * 2);
+          ctx.ellipse(cx + 5.2 + eyeShiftX, cy - 13.8, 2.1, 2.6, 0, 0, Math.PI * 2);
           ctx.fill();
 
-          // 눈동자 하단 보석 반사광
-          ctx.fillStyle = ag.hairColor;
-          ctx.fillRect(cx - 7.2 + eyeShiftX, cy - 13.2, 3.0, 1.6);
-          ctx.fillRect(cx + 4.2 + eyeShiftX, cy - 13.2, 3.0, 1.6);
+          // 위쪽 속눈썹 아치
+          ctx.strokeStyle = '#141118';
+          ctx.lineWidth = 1.3;
+          ctx.beginPath();
+          ctx.arc(cx - 5.2 + eyeShiftX, cy - 14.0, 2.4, Math.PI * 1.1, Math.PI * 1.9);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(cx + 5.2 + eyeShiftX, cy - 14.0, 2.4, Math.PI * 1.1, Math.PI * 1.9);
+          ctx.stroke();
 
-          // 메인 화이트 별빛 하이라이트 + 서브 하이라이트
+          // 눈동자 하단 컬러 반사광
+          ctx.fillStyle = ag.hairColor;
+          ctx.beginPath();
+          ctx.arc(cx - 5.2 + eyeShiftX, cy - 12.5, 1.1, 0, Math.PI * 2);
+          ctx.arc(cx + 5.2 + eyeShiftX, cy - 12.5, 1.1, 0, Math.PI * 2);
+          ctx.fill();
+
+          // 화이트 하이라이트
           ctx.fillStyle = '#ffffff';
           ctx.beginPath();
-          ctx.arc(cx - 6.4 + eyeShiftX, cy - 15.3, 1.25, 0, Math.PI * 2);
-          ctx.arc(cx + 5.0 + eyeShiftX, cy - 15.3, 1.25, 0, Math.PI * 2);
+          ctx.arc(cx - 5.8 + eyeShiftX, cy - 14.8, 0.95, 0, Math.PI * 2);
+          ctx.arc(cx + 4.6 + eyeShiftX, cy - 14.8, 0.95, 0, Math.PI * 2);
           ctx.fill();
-          ctx.fillRect(cx - 4.6 + eyeShiftX, cy - 13.0, 1.1, 1.1);
-          ctx.fillRect(cx + 6.6 + eyeShiftX, cy - 13.0, 1.1, 1.1);
         } else {
-          // 눈 깜빡임
-          ctx.fillStyle = '#0f172a';
-          ctx.fillRect(cx - 7.5 + eyeShiftX, cy - 14.2, 4.5, 1.6);
-          ctx.fillRect(cx + 3.0 + eyeShiftX, cy - 14.2, 4.5, 1.6);
+          // 눈 깜빡임 곡선
+          ctx.strokeStyle = '#1e1b24';
+          ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          ctx.arc(cx - 5.2 + eyeShiftX, cy - 13.5, 2.2, 0.1 * Math.PI, 0.9 * Math.PI);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(cx + 5.2 + eyeShiftX, cy - 13.5, 2.2, 0.1 * Math.PI, 0.9 * Math.PI);
+          ctx.stroke();
         }
 
-        // 풍성한 앞머리 & 옆머리 볼륨
-        ctx.fillStyle = ag.hairShade;
+        // 곡선형 앞머리(Bangs) & 옆머리(Side Locks) - 그라데이션 셰이딩
+        ctx.fillStyle = hairGrad;
         ctx.beginPath();
-        ctx.roundRect(cx - 15.2, cy - 30.5, 30.4, 7.8, 5.5);
+        ctx.arc(cx, cy - 18.8, 14.5, Math.PI * 0.96, Math.PI * 2.04);
+        // 부드러운 가르마와 앞머리 곡선
+        ctx.quadraticCurveTo(cx + 10, cy - 15.5, cx + 5.5, cy - 17.8);
+        ctx.quadraticCurveTo(cx + 1.5, cy - 14.5, cx - 2.5, cy - 17.8);
+        ctx.quadraticCurveTo(cx - 7.5, cy - 15.2, cx - 14.4, cy - 18.2);
+        ctx.closePath();
         ctx.fill();
+        ctx.strokeStyle = '#231815';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
 
+        // 뺨을 감싸는 부드러운 옆머리 곡선
         ctx.fillStyle = ag.hairColor;
         ctx.beginPath();
-        ctx.roundRect(cx - 14.6, cy - 29.0, 29.2, 9.2, 5.5);
-        ctx.fill();
-
-        // 앞머리 중앙 가닥 디테일
-        ctx.beginPath();
-        ctx.moveTo(cx - 5, cy - 21);
-        ctx.lineTo(cx - 1, cy - 17.5);
-        ctx.lineTo(cx + 3, cy - 21);
+        ctx.moveTo(cx - 14.2, cy - 19.5);
+        ctx.quadraticCurveTo(cx - 15.2, cy - 12.5, cx - 11.2, cy - 8.5);
+        ctx.quadraticCurveTo(cx - 10.2, cy - 13.5, cx - 11.5, cy - 19.0);
         ctx.closePath();
         ctx.fill();
 
-        // 옆머리 락(Locks)
         ctx.beginPath();
-        ctx.roundRect(cx - 15.2, cy - 22.5, 4.4, 13.5, 2.2);
-        ctx.roundRect(cx + 10.8, cy - 22.5, 4.4, 13.5, 2.2);
+        ctx.moveTo(cx + 14.2, cy - 19.5);
+        ctx.quadraticCurveTo(cx + 15.2, cy - 12.5, cx + 11.2, cy - 8.5);
+        ctx.quadraticCurveTo(cx + 10.2, cy - 13.5, cx + 11.5, cy - 19.0);
+        ctx.closePath();
         ctx.fill();
 
-        // 정수리 바보털(아호게) 볼륨 포인트
+        // 은은한 곡선 엔젤링 헤어 하이라이트
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.34)';
+        ctx.lineWidth = 2.0;
+        ctx.lineCap = 'round';
         ctx.beginPath();
-        ctx.ellipse(cx + 2, cy - 31.2, 4.2, 2.0, -0.3, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.arc(cx, cy - 19.2, 10.8, Math.PI * 1.18, Math.PI * 1.82);
+        ctx.stroke();
 
-        // 엔젤링 헤어 하이라이트 (광택 아치)
-        ctx.fillStyle = 'rgba(255,255,255,0.58)';
-        ctx.beginPath();
-        ctx.roundRect(cx - 9.5, cy - 27.3, 15, 2.4, 1.2);
-        ctx.roundRect(cx + 6.5, cy - 27.3, 3.2, 2.4, 1.2);
-        ctx.fill();
-
-        // 액세서리 디테일 (안경 / 헤드셋 / 대표 배지 / 안전 배지)
+        // 액세서리 디테일 (라운드 안경 / 헤드셋 / 배지)
         if (ag.accessory === 'GLASSES') {
-          ctx.strokeStyle = '#f8fafc';
-          ctx.lineWidth = 1.3;
+          ctx.strokeStyle = '#334155';
+          ctx.lineWidth = 1.25;
           ctx.beginPath();
-          ctx.roundRect(cx - 9.0 + eyeShiftX, cy - 17.5, 6.2, 5.5, 1.2);
-          ctx.roundRect(cx + 2.8 + eyeShiftX, cy - 17.5, 6.2, 5.5, 1.2);
+          ctx.roundRect(cx - 8.6 + eyeShiftX, cy - 16.5, 5.8, 4.8, 2.0);
+          ctx.roundRect(cx + 2.8 + eyeShiftX, cy - 16.5, 5.8, 4.8, 2.0);
           ctx.stroke();
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.22)';
           ctx.beginPath();
-          ctx.moveTo(cx - 2.8 + eyeShiftX, cy - 14.8);
-          ctx.lineTo(cx + 2.8 + eyeShiftX, cy - 14.8);
+          ctx.roundRect(cx - 8.2 + eyeShiftX, cy - 16.1, 5.0, 4.0, 1.6);
+          ctx.roundRect(cx + 3.2 + eyeShiftX, cy - 16.1, 5.0, 4.0, 1.6);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.moveTo(cx - 2.8 + eyeShiftX, cy - 14.2);
+          ctx.lineTo(cx + 2.8 + eyeShiftX, cy - 14.2);
           ctx.stroke();
         } else if (ag.accessory === 'HEADSET') {
-          ctx.strokeStyle = '#38bdf8';
-          ctx.lineWidth = 2.2;
+          ctx.strokeStyle = '#475569';
+          ctx.lineWidth = 2.0;
           ctx.beginPath();
-          ctx.arc(cx, cy - 20.5, 15.2, Math.PI * 1.05, Math.PI * 1.95);
+          ctx.arc(cx, cy - 19.2, 14.8, Math.PI * 1.06, Math.PI * 1.94);
           ctx.stroke();
-          ctx.fillStyle = '#0284c7';
+          ctx.fillStyle = '#334155';
           ctx.beginPath();
-          ctx.roundRect(cx - 17.2, cy - 19.5, 3.8, 7.5, 1.8);
-          ctx.roundRect(cx + 13.4, cy - 19.5, 3.8, 7.5, 1.8);
+          ctx.roundRect(cx - 16.5, cy - 18.2, 3.6, 6.8, 1.8);
+          ctx.roundRect(cx + 12.9, cy - 18.2, 3.6, 6.8, 1.8);
           ctx.fill();
-          ctx.fillStyle = '#7dd3fc';
-          ctx.fillRect(cx - 16.5, cy - 17.5, 1.5, 3.5);
-          ctx.fillRect(cx + 15.0, cy - 17.5, 1.5, 3.5);
+          ctx.strokeStyle = '#1e293b';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.fillStyle = '#38bdf8';
+          ctx.beginPath();
+          ctx.arc(cx - 14.7, cy - 14.8, 1.1, 0, Math.PI * 2);
+          ctx.arc(cx + 14.7, cy - 14.8, 1.1, 0, Math.PI * 2);
+          ctx.fill();
         } else if (ag.accessory === 'CROWN_PIN') {
           ctx.fillStyle = '#fbbf24';
           ctx.beginPath();
-          ctx.arc(cx + 5.5, cy - 2.5, 2.2, 0, Math.PI * 2);
+          ctx.arc(cx + 5.2, cy - 2.5, 2.0, 0, Math.PI * 2);
           ctx.fill();
         } else if (ag.accessory === 'SAFETY_BADGE') {
           ctx.fillStyle = '#10b981';
           ctx.beginPath();
-          ctx.arc(cx + 5.5, cy - 2.5, 2.2, 0, Math.PI * 2);
+          ctx.arc(cx + 5.2, cy - 2.5, 2.0, 0, Math.PI * 2);
           ctx.fill();
         }
       }
@@ -1661,7 +1683,7 @@ export default function PixelRpgOffice({
       ctx.restore();
     };
 
-    // 캐릭터 하단 둥근 다크 슬레이트 캡슐 네임태그 (윤지아 (대기), 신영호 대표 에메랄드 체크 아이콘 포함)
+    // 캐릭터 하단 불투명 다크 슬레이트 캡슐 네임태그 (office_bg.png 기존 이름표 위치와 1:1 오차 0px 일치 및 100% 덮어쓰기)
     const drawStaffOverlay = (
       ctx: CanvasRenderingContext2D,
       ag: OfficeStaff,
@@ -1670,104 +1692,101 @@ export default function PixelRpgOffice({
     ) => {
       const cx = Math.round(ag.x);
       const isInMeeting = detectRoomByPoint(ag.x, ag.y) === 'MEETING_ROOM' && !isWalking;
-      const labelY =
-        ag.role === 'CEO'
-          ? Math.round(ag.y + 15)
-          : isInMeeting
-          ? Math.round(ag.y + 18)
-          : Math.round(ag.y + 28);
 
-      // 1) 신영호 대표 (CEO) 전용 둥근 다크 슬레이트 캡슐 + 에메랄드 체크 아이콘
+      // 1) 신영호 대표 (CEO): office_bg.png 의 기존 이름표 박스(x: 502..616, y: 472..504)를 100% 덮는 불투명 다크 캡슐
       if (ag.role === 'CEO') {
-        const capW = 104;
-        const capH = 30;
+        const capW = 122;
+        const capH = 34;
         const capX = cx - capW / 2;
+        const labelY = Math.round(ag.y + 15); // ag.y=456 -> labelY=471..505 (기존 박스 완벽 커버)
 
         ctx.save();
         ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
         ctx.shadowBlur = 8;
         ctx.shadowOffsetY = 2;
 
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.94)';
+        ctx.fillStyle = '#0f172a';
         ctx.beginPath();
         ctx.roundRect(capX, labelY, capW, capH, 8);
         ctx.fill();
 
         ctx.shadowBlur = 0;
-        ctx.strokeStyle = reportUnlockedRef.current ? '#fbbf24' : 'rgba(148, 163, 184, 0.75)';
-        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = reportUnlockedRef.current ? '#fbbf24' : '#94a3b8';
+        ctx.lineWidth = 1.6;
         ctx.stroke();
 
         // 상단 1열: 신영호 대표
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 10px sans-serif';
+        ctx.font = 'bold 10.5px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(ag.name, cx, labelY + 12);
+        ctx.fillText(ag.name, cx, labelY + 13.5);
 
         // 하단 2열: 에메랄드 체크 아이콘 + 상태 텍스트
-        const iconX = capX + 16;
-        const iconY = labelY + 21.5;
+        const iconX = capX + 18;
+        const iconY = labelY + 24.5;
         ctx.fillStyle = '#10b981';
         ctx.beginPath();
-        ctx.arc(iconX, iconY, 4.5, 0, Math.PI * 2);
+        ctx.arc(iconX, iconY, 4.8, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 1.4;
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.moveTo(iconX - 2.0, iconY + 0.2);
-        ctx.lineTo(iconX - 0.4, iconY + 1.8);
-        ctx.lineTo(iconX + 2.2, iconY - 1.5);
+        ctx.moveTo(iconX - 2.2, iconY + 0.2);
+        ctx.lineTo(iconX - 0.4, iconY + 2.0);
+        ctx.lineTo(iconX + 2.4, iconY - 1.6);
         ctx.stroke();
 
         ctx.fillStyle = '#e2e8f0';
-        ctx.font = 'bold 8.5px sans-serif';
+        ctx.font = 'bold 9px sans-serif';
         ctx.textAlign = 'left';
-        const ceoSubLabel = ag.taskLabel.replace(/^✅\s*/, '').replace(/^📚\s*/, '').slice(0, 9);
-        ctx.fillText(ceoSubLabel, iconX + 7, labelY + 24.5);
+        const ceoSubLabel = ag.taskLabel.replace(/^✅\s*/, '').replace(/^📚\s*/, '').slice(0, 10);
+        ctx.fillText(ceoSubLabel, iconX + 8, labelY + 27.5);
         ctx.restore();
       } else if (!ag.isSelectedTeam) {
-        // 2) 비활성(대기) 부서원: 둥근 다크 슬레이트 캡슐 [윤지아 (대기)] + 부드러운 그림자
-        const pillW = 86;
-        const pillH = 20;
+        // 2) 비활성(대기) 부서원: office_bg.png 기존 이름표(최대 폭 109px, 높이 25px)를 100% 덮는 불투명 다크 슬레이트 캡슐
+        const pillW = 112;
+        const pillH = 27;
         const pillX = cx - pillW / 2;
+        const labelY = Math.round(ag.y + 26);
 
         ctx.save();
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.55)';
         ctx.shadowBlur = 6;
         ctx.shadowOffsetY = 2;
 
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+        ctx.fillStyle = '#131c2e';
         ctx.beginPath();
-        ctx.roundRect(pillX, labelY, pillW, pillH, 10);
+        ctx.roundRect(pillX, labelY, pillW, pillH, 8);
         ctx.fill();
 
         ctx.shadowBlur = 0;
-        ctx.strokeStyle = 'rgba(148, 163, 184, 0.65)';
-        ctx.lineWidth = 1.2;
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.72)';
+        ctx.lineWidth = 1.3;
         ctx.stroke();
 
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 9.5px sans-serif';
+        ctx.font = 'bold 10px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(`${ag.name.split(' ')[0]} (대기)`, cx, labelY + 13.5);
+        ctx.fillText(`${ag.name.split(' ')[0]} (대기)`, cx, labelY + 17);
         ctx.restore();
         return;
       } else {
-        // 3) 전담 투입 부서원: 둥근 다크 슬레이트 캡슐 + 실시간 프로그레스 바
+        // 3) 전담 투입 부서원: 기존 정적 이름표를 100% 덮는 불투명 다크 슬레이트 캡슐 + 프로그레스 바
         const isReject = ag.taskLabel.includes('반려');
-        const capW = 106;
-        const capH = 28;
+        const capW = 114;
+        const capH = 29;
         const capX = cx - capW / 2;
+        const labelY = isInMeeting ? Math.round(ag.y + 18) : Math.round(ag.y + 25);
 
         ctx.save();
         ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
         ctx.shadowBlur = 8;
         ctx.shadowOffsetY = 2;
 
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.94)';
+        ctx.fillStyle = '#0f172a';
         ctx.beginPath();
-        ctx.roundRect(capX, labelY, capW, capH, 9);
+        ctx.roundRect(capX, labelY, capW, capH, 8.5);
         ctx.fill();
 
         ctx.shadowBlur = 0;
@@ -1782,17 +1801,17 @@ export default function PixelRpgOffice({
 
         ctx.fillStyle = '#1e293b';
         ctx.beginPath();
-        ctx.roundRect(cx - 46, labelY + 15, 92, 8.5, 4.2);
+        ctx.roundRect(cx - 48, labelY + 15.5, 96, 8.5, 4.2);
         ctx.fill();
         if (ag.progress > 0) {
           ctx.fillStyle = isReject ? '#f43f5e' : ag.isShelfMode ? '#f59e0b' : ag.progress >= 100 ? '#10b981' : '#0ea5e9';
           ctx.beginPath();
-          ctx.roundRect(cx - 46, labelY + 15, Math.max(8, Math.round((92 * ag.progress) / 100)), 8.5, 4.2);
+          ctx.roundRect(cx - 48, labelY + 15.5, Math.max(8, Math.round((96 * ag.progress) / 100)), 8.5, 4.2);
           ctx.fill();
         }
         ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 7.8px sans-serif';
-        ctx.fillText(isWalking ? '🚶 이동 중..' : ag.taskLabel.slice(0, 14), cx, labelY + 22);
+        ctx.fillText(isWalking ? '🚶 이동 중..' : ag.taskLabel.slice(0, 14), cx, labelY + 22.5);
         ctx.restore();
       }
 
@@ -1880,14 +1899,14 @@ export default function PixelRpgOffice({
       const staffList = Object.values(staffRef.current);
 
       if (bgLoaded && bgImageRef.current) {
-        // 1) public/office_bg.png 우선 렌더링 (고해상도 일러스트 디테일 100% 보존)
+        // 1) public/office_bg.png 우선 렌더링
         ctx.save();
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(bgImageRef.current, 0, 0, CW, CH);
         ctx.restore();
 
-        // 각 부서실 하이브리드 스포트라이트 셰이딩 & 서가 히트 효과만 반투명 오버레이
+        // 2) 각 부서실 스포트라이트 오버레이 + 15개 책상 및 대표 좌석 Inpainting Mask (분신술 및 이중 이름표 원천 제거)
         (Object.entries(ROOMS) as Array<[DeptRoomKey, typeof ROOMS.HR_ROOM]>).forEach(([rKey, r]) => {
           const isRoomActive = staffList.some((s) => s.roomKey === rKey && s.isSelectedTeam && rKey !== 'MEETING_ROOM');
           drawHybridRoomSpotlight(ctx, r.rx, r.ry, r.rw, r.rh, r.badgeColor, isRoomActive, rKey, f);
@@ -1899,29 +1918,17 @@ export default function PixelRpgOffice({
                 staffList.some((s) => s.roomKey === rKey && Math.hypot(s.x - r.shelf.x, s.y - r.shelf.y) < 35));
             drawBookshelf(ctx, r.shelf.x, r.shelf.y, isShelfGlowing, f, true);
 
-            // 전담팀 캐릭터가 자리를 비우고 이동 중일 때 배경 원화의 빈 의자 등받이를 깔끔하게 표현
+            // 모든 책상 위치에서 배경 이미지의 정적 캐릭터를 빈 임원용 의자 + 배경 패치로 먼저 덮어씌움
             r.desks.forEach((d) => {
-              const isAnyoneAtDesk = staffList.some(
-                (s) => Math.hypot(s.x - d.x, s.y - d.y) < 18
+              const isOccupiedAtDesk = staffList.some(
+                (s) => Math.hypot(s.x - d.x, s.y - d.y) < 16
               );
-              if (!isAnyoneAtDesk) {
-                ctx.save();
-                ctx.fillStyle = '#1e293b';
-                ctx.beginPath();
-                ctx.roundRect(d.x - 16, d.y - 29, 32, 28, 7);
-                ctx.fill();
-                ctx.strokeStyle = '#475569';
-                ctx.lineWidth = 1.4;
-                ctx.stroke();
-                ctx.fillStyle = '#334155';
-                ctx.beginPath();
-                ctx.roundRect(d.x - 12, d.y - 25, 24, 20, 5);
-                ctx.fill();
-                ctx.restore();
-              }
+              drawDeskInpaintMask(ctx, d.x, d.y, rKey, isOccupiedAtDesk);
             });
           } else {
-            // 중앙 회의실 테이블 은은한 골드 스포트라이트 및 CEO 긴급 지시 파동
+            // 중앙 회의실 신영호 대표 좌석 및 정적 이름표 영역 마스킹
+            drawCeoInpaintMask(ctx);
+
             const tableGlow = ctx.createRadialGradient(
               MEETING_TABLE_CENTER.x,
               MEETING_TABLE_CENTER.y,
@@ -1930,7 +1937,7 @@ export default function PixelRpgOffice({
               MEETING_TABLE_CENTER.y,
               88
             );
-            tableGlow.addColorStop(0, 'rgba(251, 191, 36, 0.25)');
+            tableGlow.addColorStop(0, 'rgba(251, 191, 36, 0.22)');
             tableGlow.addColorStop(1, 'rgba(251, 191, 36, 0)');
             ctx.fillStyle = tableGlow;
             ctx.beginPath();
@@ -1948,7 +1955,7 @@ export default function PixelRpgOffice({
           }
         });
       } else {
-        // 2) 이미지 미로드 시 고밀도 프로시저럴 배경 폴백 유지
+        // 이미지 미로드 시 고밀도 프로시저럴 배경 폴백 유지
         for (let y = 0; y < CH; y += 24) {
           for (let x = 0; x < CW; x += 24) {
             ctx.fillStyle = (Math.floor(x / 24) + Math.floor(y / 24)) % 2 === 0 ? '#334155' : '#293548';
@@ -1998,48 +2005,6 @@ export default function PixelRpgOffice({
             ctx.lineWidth = 2.5;
             ctx.strokeRect(r.rx + 50, r.ry + 70, r.rw - 100, r.rh - 106);
 
-            const emX = MEETING_TABLE_CENTER.x;
-            const emY = r.ry + 38;
-            ctx.fillStyle = '#0f172a';
-            ctx.beginPath();
-            ctx.arc(emX, emY, 16, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = '#fbbf24';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-
-            const tableGlow = ctx.createRadialGradient(
-              MEETING_TABLE_CENTER.x,
-              MEETING_TABLE_CENTER.y,
-              8,
-              MEETING_TABLE_CENTER.x,
-              MEETING_TABLE_CENTER.y,
-              84
-            );
-            tableGlow.addColorStop(0, 'rgba(251, 191, 36, 0.38)');
-            tableGlow.addColorStop(1, 'rgba(251, 191, 36, 0)');
-            ctx.fillStyle = tableGlow;
-            ctx.beginPath();
-            ctx.arc(MEETING_TABLE_CENTER.x, MEETING_TABLE_CENTER.y, 84, 0, Math.PI * 2);
-            ctx.fill();
-
-            for (let ci = 0; ci < 6; ci++) {
-              const ang = (ci * Math.PI) / 3;
-              const chX = MEETING_TABLE_CENTER.x + Math.cos(ang) * 76;
-              const chY = MEETING_TABLE_CENTER.y + Math.sin(ang) * 44;
-              ctx.fillStyle = '#1e293b';
-              ctx.beginPath();
-              ctx.arc(chX, chY, 10, 0, Math.PI * 2);
-              ctx.fill();
-              ctx.strokeStyle = '#fbbf24';
-              ctx.lineWidth = 1.5;
-              ctx.stroke();
-            }
-
-            ctx.fillStyle = 'rgba(0,0,0,0.4)';
-            ctx.beginPath();
-            ctx.ellipse(MEETING_TABLE_CENTER.x, MEETING_TABLE_CENTER.y + 5, 68, 38, 0, 0, Math.PI * 2);
-            ctx.fill();
             ctx.fillStyle = '#78350f';
             ctx.beginPath();
             ctx.ellipse(MEETING_TABLE_CENTER.x, MEETING_TABLE_CENTER.y, 66, 36, 0, 0, Math.PI * 2);
@@ -2048,20 +2013,6 @@ export default function PixelRpgOffice({
             ctx.beginPath();
             ctx.ellipse(MEETING_TABLE_CENTER.x, MEETING_TABLE_CENTER.y, 56, 28, 0, 0, Math.PI * 2);
             ctx.fill();
-            ctx.strokeStyle = '#fde047';
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.ellipse(MEETING_TABLE_CENTER.x, MEETING_TABLE_CENTER.y, 38, 18, 0, 0, Math.PI * 2);
-            ctx.stroke();
-
-            if (ceoWaveFlashRef.current > 0) {
-              const radius = 50 + ((120 - ceoWaveFlashRef.current) % 45) * 2.2;
-              ctx.strokeStyle = 'rgba(56, 189, 248, 0.75)';
-              ctx.lineWidth = 3;
-              ctx.beginPath();
-              ctx.arc(MEETING_SEATS.CEO.x, MEETING_SEATS.CEO.y, radius, 0, Math.PI * 2);
-              ctx.stroke();
-            }
           }
         });
       }
@@ -2248,7 +2199,6 @@ export default function PixelRpgOffice({
           drawDesk(ctx, d.x, d.y, busy, isSelectedRoom, f, bgLoaded);
         });
 
-        // 폴백 모드일 때만 부서 명패 배지 드로잉 (office_bg.png 로드 시에는 원화 상단 간판 그대로 활용)
         if (!bgLoaded) {
           ctx.fillStyle = 'rgba(15, 23, 42, 0.94)';
           ctx.beginPath();
