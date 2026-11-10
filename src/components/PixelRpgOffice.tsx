@@ -92,8 +92,9 @@ interface PixelRpgOfficeProps {
 
 const CW = 1120;
 const CH = 640;
-const CORRIDOR_Y = 305;
+const CORRIDOR_Y = 304;
 
+// public/office_bg.png 의 6개 부서실 구도 및 책상·서가·출입구 좌표 정밀 매칭
 const ROOMS: Record<
   DeptRoomKey,
   {
@@ -113,109 +114,110 @@ const ROOMS: Record<
   HR_ROOM: {
     title: '🔍 리서치·인사팀',
     badgeColor: '#38bdf8',
-    rx: 16,
-    ry: 14,
-    rw: 348,
-    rh: 256,
-    doorX: 190,
-    doorY: 270,
+    rx: 26,
+    ry: 22,
+    rw: 338,
+    rh: 252,
+    doorX: 195,
+    doorY: 274,
     floorType: 'WOOD',
     desks: [
-      { x: 95, y: 132 },
-      { x: 205, y: 132 },
-      { x: 285, y: 198 },
+      { x: 128, y: 140 },
+      { x: 244, y: 140 },
+      { x: 294, y: 206 },
     ],
-    shelf: { x: 145, y: 74 },
+    shelf: { x: 186, y: 84 },
   },
   DEV_ROOM: {
     title: '💻 AI·SW개발팀',
     badgeColor: '#818cf8',
-    rx: 386,
-    ry: 14,
-    rw: 348,
-    rh: 256,
+    rx: 391,
+    ry: 22,
+    rw: 338,
+    rh: 252,
     doorX: 560,
-    doorY: 270,
+    doorY: 274,
     floorType: 'DARK_BLUE',
     desks: [
-      { x: 465, y: 132 },
-      { x: 575, y: 132 },
-      { x: 655, y: 198 },
+      { x: 472, y: 140 },
+      { x: 588, y: 140 },
+      { x: 638, y: 206 },
     ],
-    shelf: { x: 515, y: 74 },
+    shelf: { x: 492, y: 84 },
   },
   QA_ROOM: {
     title: '🏭 품질·생산QA팀',
     badgeColor: '#34d399',
     rx: 756,
-    ry: 14,
-    rw: 348,
-    rh: 256,
-    doorX: 930,
-    doorY: 270,
+    ry: 22,
+    rw: 338,
+    rh: 252,
+    doorX: 925,
+    doorY: 274,
     floorType: 'SLATE',
     desks: [
-      { x: 835, y: 132 },
-      { x: 945, y: 132 },
-      { x: 1025, y: 198 },
+      { x: 830, y: 140 },
+      { x: 938, y: 140 },
+      { x: 1002, y: 206 },
     ],
-    shelf: { x: 885, y: 74 },
+    shelf: { x: 800, y: 84 },
   },
   FIN_ROOM: {
     title: '📊 재무·데이터팀',
     badgeColor: '#fbbf24',
-    rx: 16,
-    ry: 342,
-    rw: 348,
-    rh: 280,
-    doorX: 190,
-    doorY: 342,
+    rx: 26,
+    ry: 338,
+    rw: 338,
+    rh: 258,
+    doorX: 195,
+    doorY: 338,
     floorType: 'EMERALD',
     desks: [
-      { x: 95, y: 458 },
-      { x: 205, y: 458 },
-      { x: 285, y: 538 },
+      { x: 126, y: 454 },
+      { x: 242, y: 454 },
+      { x: 294, y: 520 },
     ],
-    shelf: { x: 145, y: 400 },
+    shelf: { x: 78, y: 405 },
   },
   MEETING_ROOM: {
     title: '📋 중앙 결재·회의실',
     badgeColor: '#f59e0b',
-    rx: 386,
-    ry: 342,
-    rw: 348,
-    rh: 280,
+    rx: 391,
+    ry: 338,
+    rw: 338,
+    rh: 258,
     doorX: 560,
-    doorY: 342,
+    doorY: 338,
     floorType: 'AMBER',
     desks: [],
-    shelf: { x: 560, y: 390 },
+    shelf: { x: 432, y: 396 },
   },
   MKT_ROOM: {
     title: '🛒 마케팅·전략팀',
     badgeColor: '#f472b6',
     rx: 756,
-    ry: 342,
-    rw: 348,
-    rh: 280,
-    doorX: 930,
-    doorY: 342,
+    ry: 338,
+    rw: 338,
+    rh: 258,
+    doorX: 925,
+    doorY: 338,
     floorType: 'WOOD',
     desks: [
-      { x: 835, y: 458 },
-      { x: 945, y: 458 },
-      { x: 1025, y: 538 },
+      { x: 838, y: 454 },
+      { x: 948, y: 454 },
+      { x: 1010, y: 520 },
     ],
-    shelf: { x: 885, y: 400 },
+    shelf: { x: 980, y: 400 },
   },
 };
 
-const MEETING_TABLE_CENTER = { x: 560, y: 495 };
+// 중앙 결재·회의실 타원형 테이블 중심 및 의자(좌석) 좌표 정밀 매칭
+const MEETING_TABLE_CENTER = { x: 558, y: 520 };
 const MEETING_SEATS = {
-  CEO: { x: 495, y: 445, facing: 'DOWN' as Direction },
-  SUPERVISOR: { x: 625, y: 445, facing: 'DOWN' as Direction },
-  WORKER1: { x: 495, y: 548, facing: 'UP' as Direction },
-  WORKER2: { x: 625, y: 548, facing: 'UP' as Direction },
+  CEO: { x: 556, y: 432, facing: 'DOWN' as Direction },
+  SUPERVISOR: { x: 446, y: 494, facing: 'DOWN' as Direction },
+  WORKER1: { x: 492, y: 556, facing: 'UP' as Direction },
+  WORKER2: { x: 624, y: 556, facing: 'UP' as Direction },
 };
 
 const INITIAL_ROSTER: Array<{
@@ -230,22 +232,22 @@ const INITIAL_ROSTER: Array<{
   shirt: string;
   accessory: 'GLASSES' | 'HEADSET' | 'CROWN_PIN' | 'SAFETY_BADGE' | 'NONE';
 }> = [
-  { id: 'ceo', name: '신영호 대표', deptTitle: '경영진', roomKey: 'MEETING_ROOM', role: 'CEO', deskIdx: 0, hair: '#f59e0b', shade: '#b45309', shirt: '#3730a3', accessory: 'CROWN_PIN' },
+  { id: 'ceo', name: '신영호 대표', deptTitle: '경영진', roomKey: 'MEETING_ROOM', role: 'CEO', deskIdx: 0, hair: '#cbd5e1', shade: '#64748b', shirt: '#1e293b', accessory: 'CROWN_PIN' },
   { id: 'sup-hr-01', name: '윤지아 팀장', deptTitle: '인사·리서치팀', roomKey: 'HR_ROOM', role: 'SUPERVISOR', deskIdx: 0, hair: '#fb7185', shade: '#be123c', shirt: '#9f1239', accessory: 'GLASSES' },
-  { id: 'wrk-hr-01', name: '박수아 수석', deptTitle: '인사·리서치팀', roomKey: 'HR_ROOM', role: 'WORKER1', deskIdx: 1, hair: '#67e8f9', shade: '#0891b2', shirt: '#1e40af', accessory: 'HEADSET' },
-  { id: 'wrk-hr-02', name: '한채원 책임', deptTitle: '인사·리서치팀', roomKey: 'HR_ROOM', role: 'WORKER2', deskIdx: 2, hair: '#c084fc', shade: '#7e22ce', shirt: '#065f46', accessory: 'GLASSES' },
-  { id: 'sup-dev-01', name: '임민서 팀장', deptTitle: 'SW개발팀', roomKey: 'DEV_ROOM', role: 'SUPERVISOR', deskIdx: 0, hair: '#38bdf8', shade: '#0284c7', shirt: '#1e3a8a', accessory: 'GLASSES' },
-  { id: 'wrk-dev-01', name: '임지우 수석', deptTitle: 'SW개발팀', roomKey: 'DEV_ROOM', role: 'WORKER1', deskIdx: 1, hair: '#a3e635', shade: '#4d7c0f', shirt: '#0f766e', accessory: 'HEADSET' },
+  { id: 'wrk-hr-01', name: '박수아 수석', deptTitle: '인사·리서치팀', roomKey: 'HR_ROOM', role: 'WORKER1', deskIdx: 1, hair: '#38bdf8', shade: '#0369a1', shirt: '#1e40af', accessory: 'GLASSES' },
+  { id: 'wrk-hr-02', name: '한채원 책임', deptTitle: '인사·리서치팀', roomKey: 'HR_ROOM', role: 'WORKER2', deskIdx: 2, hair: '#c084fc', shade: '#7e22ce', shirt: '#4c1d95', accessory: 'HEADSET' },
+  { id: 'sup-dev-01', name: '임민서 팀장', deptTitle: 'SW개발팀', roomKey: 'DEV_ROOM', role: 'SUPERVISOR', deskIdx: 0, hair: '#60a5fa', shade: '#1d4ed8', shirt: '#1e3a8a', accessory: 'HEADSET' },
+  { id: 'wrk-dev-01', name: '임지우 수석', deptTitle: 'SW개발팀', roomKey: 'DEV_ROOM', role: 'WORKER1', deskIdx: 1, hair: '#84cc16', shade: '#4d7c0f', shirt: '#0f766e', accessory: 'GLASSES' },
   { id: 'wrk-dev-02', name: '임유진 책임', deptTitle: 'SW개발팀', roomKey: 'DEV_ROOM', role: 'WORKER2', deskIdx: 2, hair: '#f472b6', shade: '#db2777', shirt: '#6b21a8', accessory: 'HEADSET' },
   { id: 'sup-qa-01', name: '임승현 팀장', deptTitle: '품질보증·QA팀', roomKey: 'QA_ROOM', role: 'SUPERVISOR', deskIdx: 0, hair: '#fb923c', shade: '#c2410c', shirt: '#047857', accessory: 'GLASSES' },
-  { id: 'wrk-qa-01', name: '한도윤 수석', deptTitle: '품질보증·QA팀', roomKey: 'QA_ROOM', role: 'WORKER1', deskIdx: 1, hair: '#2dd4bf', shade: '#0f766e', shirt: '#1d4ed8', accessory: 'SAFETY_BADGE' },
-  { id: 'wrk-qa-02', name: '장지우 책임', deptTitle: '품질보증·QA팀', roomKey: 'QA_ROOM', role: 'WORKER2', deskIdx: 2, hair: '#e879f9', shade: '#a21caf', shirt: '#4338ca', accessory: 'GLASSES' },
+  { id: 'wrk-qa-01', name: '한도윤 수석', deptTitle: '품질보증·QA팀', roomKey: 'QA_ROOM', role: 'WORKER1', deskIdx: 1, hair: '#38bdf8', shade: '#0f766e', shirt: '#1d4ed8', accessory: 'SAFETY_BADGE' },
+  { id: 'wrk-qa-02', name: '장지우 책임', deptTitle: '품질보증·QA팀', roomKey: 'QA_ROOM', role: 'WORKER2', deskIdx: 2, hair: '#a855f7', shade: '#6b21a8', shirt: '#4338ca', accessory: 'HEADSET' },
   { id: 'sup-fin-01', name: '정우성 팀장', deptTitle: '재무·데이터팀', roomKey: 'FIN_ROOM', role: 'SUPERVISOR', deskIdx: 0, hair: '#facc15', shade: '#a16207', shirt: '#1e40af', accessory: 'GLASSES' },
-  { id: 'wrk-fin-01', name: '강현우 수석', deptTitle: '재무·데이터팀', roomKey: 'FIN_ROOM', role: 'WORKER1', deskIdx: 1, hair: '#60a5fa', shade: '#2563eb', shirt: '#065f46', accessory: 'GLASSES' },
-  { id: 'wrk-fin-02', name: '배수빈 책임', deptTitle: '재무·데이터팀', roomKey: 'FIN_ROOM', role: 'WORKER2', deskIdx: 2, hair: '#f87171', shade: '#b91c1c', shirt: '#5b21b6', accessory: 'HEADSET' },
-  { id: 'sup-mkt-01', name: '조다은 팀장', deptTitle: '마케팅·전략팀', roomKey: 'MKT_ROOM', role: 'SUPERVISOR', deskIdx: 0, hair: '#fb7185', shade: '#be123c', shirt: '#9f1239', accessory: 'GLASSES' },
-  { id: 'wrk-mkt-01', name: '장건우 수석', deptTitle: '마케팅·전략팀', roomKey: 'MKT_ROOM', role: 'WORKER1', deskIdx: 1, hair: '#38bdf8', shade: '#0369a1', shirt: '#1e40af', accessory: 'HEADSET' },
-  { id: 'wrk-mkt-02', name: '권하윤 책임', deptTitle: '마케팅·전략팀', roomKey: 'MKT_ROOM', role: 'WORKER2', deskIdx: 2, hair: '#c084fc', shade: '#6b21a8', shirt: '#047857', accessory: 'HEADSET' },
+  { id: 'wrk-fin-01', name: '강현우 수석', deptTitle: '재무·데이터팀', roomKey: 'FIN_ROOM', role: 'WORKER1', deskIdx: 1, hair: '#60a5fa', shade: '#1e40af', shirt: '#065f46', accessory: 'GLASSES' },
+  { id: 'wrk-fin-02', name: '배수빈 책임', deptTitle: '재무·데이터팀', roomKey: 'FIN_ROOM', role: 'WORKER2', deskIdx: 2, hair: '#f87171', shade: '#991b1b', shirt: '#5b21b6', accessory: 'HEADSET' },
+  { id: 'sup-mkt-01', name: '조다은 팀장', deptTitle: '마케팅·전략팀', roomKey: 'MKT_ROOM', role: 'SUPERVISOR', deskIdx: 0, hair: '#fb7185', shade: '#9f1239', shirt: '#881337', accessory: 'GLASSES' },
+  { id: 'wrk-mkt-01', name: '장건우 수석', deptTitle: '마케팅·전략팀', roomKey: 'MKT_ROOM', role: 'WORKER1', deskIdx: 1, hair: '#38bdf8', shade: '#0369a1', shirt: '#1e40af', accessory: 'GLASSES' },
+  { id: 'wrk-mkt-02', name: '권하윤 책임', deptTitle: '마케팅·전략팀', roomKey: 'MKT_ROOM', role: 'WORKER2', deskIdx: 2, hair: '#fbbf24', shade: '#b45309', shirt: '#047857', accessory: 'HEADSET' },
 ];
 
 function detectRoomByPoint(x: number, y: number): DeptRoomKey | 'CORRIDOR' {
@@ -317,6 +319,10 @@ export default function PixelRpgOffice({
   const trailsRef = useRef<TrailPoint[]>([]);
   const frameCountRef = useRef<number>(0);
 
+  // 고해상도 일러스트 배경 이미지 (public/office_bg.png -> /office_bg.jpg 폴백)
+  const bgImageRef = useRef<HTMLImageElement | null>(null);
+  const bgLoadedRef = useRef<boolean>(false);
+
   const [speedMult, setSpeedMult] = useState<number>(1.0);
   const [isHoveringReport, setIsHoveringReport] = useState<boolean>(false);
   const [reportUnlocked, setReportUnlocked] = useState<boolean>(false);
@@ -331,6 +337,29 @@ export default function PixelRpgOffice({
 
   const { nodes, messages, finalReport } = useOfficeStore();
   const hasFinalReportRef = useRef<boolean>(false);
+
+  // /office_bg.png 비동기 우선 로드 및 /office_bg.jpg 폴백 처리
+  useEffect(() => {
+    const img = new Image();
+    img.decoding = 'async';
+    img.onload = () => {
+      bgImageRef.current = img;
+      bgLoadedRef.current = true;
+    };
+    img.onerror = () => {
+      const fallbackImg = new Image();
+      fallbackImg.decoding = 'async';
+      fallbackImg.onload = () => {
+        bgImageRef.current = fallbackImg;
+        bgLoadedRef.current = true;
+      };
+      fallbackImg.onerror = () => {
+        bgLoadedRef.current = false;
+      };
+      fallbackImg.src = '/office_bg.jpg';
+    };
+    img.src = '/office_bg.png';
+  }, []);
 
   useEffect(() => {
     const map: Record<string, OfficeStaff> = {};
@@ -365,7 +394,7 @@ export default function PixelRpgOffice({
         isSelectedTeam: item.role === 'CEO',
         isShelfMode: false,
         carryingBook: false,
-        taskLabel: item.role === 'CEO' ? '총괄 집무 대기' : '부서 일상 업무',
+        taskLabel: item.role === 'CEO' ? '총괄 결재 대기' : '부서 일상 업무',
         activeBubble: '',
         lastBubbleText: '',
         bubbleAnim: 1,
@@ -426,7 +455,7 @@ export default function PixelRpgOffice({
         st.activeBubble = '';
         st.lastBubbleText = '';
         st.bubbleAnim = 0;
-        st.taskLabel = st.role === 'CEO' ? '총괄 집무 대기' : '부서 일상 대기';
+        st.taskLabel = st.role === 'CEO' ? '총괄 결재 대기' : '부서 일상 대기';
         st.appliedPhase = 0;
       });
       return;
@@ -706,10 +735,10 @@ export default function PixelRpgOffice({
       return;
     }
     const hit =
-      cx >= MEETING_TABLE_CENTER.x - 85 &&
-      cx <= MEETING_TABLE_CENTER.x + 85 &&
-      cy >= MEETING_TABLE_CENTER.y - 60 &&
-      cy <= MEETING_TABLE_CENTER.y + 50;
+      cx >= MEETING_TABLE_CENTER.x - 90 &&
+      cx <= MEETING_TABLE_CENTER.x + 90 &&
+      cy >= MEETING_TABLE_CENTER.y - 65 &&
+      cy <= MEETING_TABLE_CENTER.y + 55;
     setIsHoveringReport(hit);
     if (hit && isClick && onOpenReportModal) {
       onOpenReportModal();
@@ -718,6 +747,64 @@ export default function PixelRpgOffice({
 
   useEffect(() => {
     let animId: number;
+
+    // [하이브리드 스포트라이트 셰이딩] office_bg.png 로드 완료 시 배경 디테일을 가리지 않고 조명/활성 테두리만 오버레이
+    const drawHybridRoomSpotlight = (
+      ctx: CanvasRenderingContext2D,
+      rx: number,
+      ry: number,
+      rw: number,
+      rh: number,
+      badgeColor: string,
+      isRoomActive: boolean,
+      rKey: DeptRoomKey,
+      f: number
+    ) => {
+      const centerX = rx + rw / 2;
+      const centerY = ry + rh / 2 + 10;
+      const lightRadius = Math.max(rw, rh) * 0.65;
+      const pulse = 1 + Math.sin(f * 0.04) * 0.07;
+
+      const roomGlow = ctx.createRadialGradient(
+        centerX,
+        centerY,
+        10,
+        centerX,
+        centerY,
+        lightRadius * pulse
+      );
+
+      if (isRoomActive) {
+        roomGlow.addColorStop(0, 'rgba(52, 211, 153, 0.22)');
+        roomGlow.addColorStop(0.5, 'rgba(56, 189, 248, 0.09)');
+        roomGlow.addColorStop(1, 'rgba(15, 23, 42, 0)');
+      } else if (rKey === 'MEETING_ROOM') {
+        roomGlow.addColorStop(0, 'rgba(251, 191, 36, 0.18)');
+        roomGlow.addColorStop(0.55, 'rgba(245, 158, 11, 0.06)');
+        roomGlow.addColorStop(1, 'rgba(15, 23, 42, 0)');
+      } else {
+        roomGlow.addColorStop(0, `${badgeColor}14`);
+        roomGlow.addColorStop(0.6, 'rgba(15, 23, 42, 0)');
+        roomGlow.addColorStop(1, 'rgba(15, 23, 42, 0.14)');
+      }
+
+      ctx.save();
+      ctx.fillStyle = roomGlow;
+      ctx.beginPath();
+      ctx.roundRect(rx, ry, rw, rh, 8);
+      ctx.fill();
+
+      if (isRoomActive) {
+        ctx.strokeStyle = 'rgba(52, 211, 153, 0.85)';
+        ctx.lineWidth = 2.5;
+        ctx.shadowColor = 'rgba(16, 185, 129, 0.65)';
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.roundRect(rx + 2, ry + 2, rw - 4, rh - 4, 8);
+        ctx.stroke();
+      }
+      ctx.restore();
+    };
 
     const drawRoomFloor = (
       ctx: CanvasRenderingContext2D,
@@ -789,7 +876,7 @@ export default function PixelRpgOffice({
       ctx.restore();
     };
 
-    // 입체적인 메탈 몰딩 프레임과 4방 코너 볼트
+    // 입체적인 메탈 몰딩 프레임과 4방 코너 볼트 (폴백용)
     const drawMetalMoldingFrame = (
       ctx: CanvasRenderingContext2D,
       rx: number,
@@ -801,22 +888,18 @@ export default function PixelRpgOffice({
       doorX: number,
       doorY: number
     ) => {
-      // 외곽 다크 베벨
       ctx.strokeStyle = '#020617';
       ctx.lineWidth = 8;
       ctx.strokeRect(rx - 2, ry - 2, rw + 4, rh + 4);
 
-      // 스틸 메탈 몰딩 바디
       ctx.strokeStyle = isRoomActive ? '#10b981' : '#475569';
       ctx.lineWidth = 4.5;
       ctx.strokeRect(rx, ry, rw, rh);
 
-      // 인라인 네온/하이라이트 트림
       ctx.strokeStyle = isRoomActive ? '#6ee7b7' : `${badgeColor}88`;
       ctx.lineWidth = 1.5;
       ctx.strokeRect(rx + 3, ry + 3, rw - 6, rh - 6);
 
-      // 코너 메탈 브래킷 & 볼트 (4개 코너)
       const corners = [
         { cx: rx + 5, cy: ry + 5 },
         { cx: rx + rw - 5, cy: ry + 5 },
@@ -837,7 +920,6 @@ export default function PixelRpgOffice({
         ctx.fillRect(cx - 1.5, cy - 0.5, 3, 1);
       });
 
-      // 출입구 슬라이딩 메탈 도어 매트
       ctx.fillStyle = '#1e293b';
       ctx.fillRect(doorX - 28, doorY - 5, 56, 10);
       ctx.fillStyle = isRoomActive ? '#34d399' : '#94a3b8';
@@ -854,16 +936,14 @@ export default function PixelRpgOffice({
       ctx.ellipse(0, 11, 11, 4.5, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // 화분 몸체
       ctx.fillStyle = '#9a3412';
       ctx.fillRect(-7, 1, 14, 10);
-      ctx.fillStyle = '#c2410c';
+      ctx.fillStyle = '#c2400c';
       ctx.fillRect(-9, -1, 18, 4);
       ctx.strokeStyle = '#431407';
       ctx.lineWidth = 1;
       ctx.strokeRect(-7, 1, 14, 10);
 
-      // 잎사귀 볼륨
       const sway = Math.sin(f * 0.04 + px) * 1.2;
       ctx.fillStyle = '#14532d';
       ctx.beginPath();
@@ -900,7 +980,7 @@ export default function PixelRpgOffice({
       ctx.fill();
     };
 
-    // 부서별 특화 아케이드 배경 디테일 렌더링
+    // 부서별 특화 아케이드 배경 디테일 렌더링 (폴백용)
     const drawOfficeProps = (
       ctx: CanvasRenderingContext2D,
       rx: number,
@@ -910,11 +990,9 @@ export default function PixelRpgOffice({
       rKey: DeptRoomKey,
       f: number
     ) => {
-      // 실내 화분
       drawLushPotPlant(ctx, rx + 24, ry + rh - 26, f, 0.95);
 
       if (rKey === 'HR_ROOM') {
-        // 1) 리서치·인사팀: 원형 차트(파이 차트) 보드 & 소파
         const bx = rx + rw - 78;
         const by = ry + 18;
         ctx.fillStyle = '#f8fafc';
@@ -923,7 +1001,6 @@ export default function PixelRpgOffice({
         ctx.lineWidth = 2;
         ctx.strokeRect(bx, by, 62, 34);
 
-        // 원형 파이 차트
         const pcx = bx + 18;
         const pcy = by + 17;
         ctx.fillStyle = '#38bdf8';
@@ -943,7 +1020,6 @@ export default function PixelRpgOffice({
         ctx.closePath();
         ctx.fill();
 
-        // 보드 우측 막대 지표
         ctx.fillStyle = '#0ea5e9';
         ctx.fillRect(bx + 34, by + 7, 20, 4);
         ctx.fillStyle = '#10b981';
@@ -951,9 +1027,8 @@ export default function PixelRpgOffice({
         ctx.fillStyle = '#f59e0b';
         ctx.fillRect(bx + 34, by + 23, 22, 4);
 
-        // 리서치팀 라운지 소파 (하단 좌측)
-        const sx = rx + 62;
-        const sy = ry + rh - 42;
+        const sx = rx + 52;
+        const sy = ry + rh - 44;
         ctx.fillStyle = 'rgba(0,0,0,0.35)';
         ctx.fillRect(sx - 2, sy + 4, 68, 24);
         ctx.fillStyle = '#0369a1';
@@ -966,7 +1041,6 @@ export default function PixelRpgOffice({
         ctx.roundRect(sx + 34, sy + 5, 25, 14, 4);
         ctx.fill();
       } else if (rKey === 'DEV_ROOM') {
-        // 2) AI·SW개발팀: 대형 코드 모니터, 홀로그램 큐브, AI 로봇
         const mx = rx + rw - 88;
         const my = ry + 16;
         ctx.fillStyle = '#090d16';
@@ -981,7 +1055,6 @@ export default function PixelRpgOffice({
           ctx.fillRect(mx + 6 + (i % 2) * 6, my + 6 + i * 6, w, 3);
         }
 
-        // 홀로그램 큐브 & 페데스탈 (좌측 상단)
         const hx = rx + 36;
         const hy = ry + 56;
         ctx.fillStyle = '#1e293b';
@@ -1006,7 +1079,6 @@ export default function PixelRpgOffice({
         ctx.strokeStyle = '#c084fc';
         ctx.strokeRect(hx - 3, floatY - 11, 12, 12);
 
-        // 귀여운 개발팀 AI 로봇 (좌측 하단)
         const rbx = rx + 82 + Math.sin(f * 0.03) * 8;
         const rby = ry + rh - 34;
         ctx.fillStyle = '#cbd5e1';
@@ -1018,29 +1090,17 @@ export default function PixelRpgOffice({
         ctx.fillStyle = '#38bdf8';
         ctx.fillRect(rbx - 4, rby - 7, 3, 2);
         ctx.fillRect(rbx + 1, rby - 7, 3, 2);
-        ctx.strokeStyle = '#38bdf8';
-        ctx.beginPath();
-        ctx.moveTo(rbx, rby - 12);
-        ctx.lineTo(rbx, rby - 17);
-        ctx.stroke();
-        ctx.fillStyle = '#f43f5e';
-        ctx.beginPath();
-        ctx.arc(rbx, rby - 18, 2, 0, Math.PI * 2);
-        ctx.fill();
       } else if (rKey === 'QA_ROOM') {
-        // 3) 품질·생산QA팀: 유리창 너머 컨베이어 벨트, 안전모, QA 체크리스트 보드, 원형 테이블
         const cx = rx + 18;
         const cy = ry + 16;
         const cw = 98;
         const ch = 36;
-        // 유리창 프레임
         ctx.fillStyle = '#090d16';
         ctx.fillRect(cx, cy, cw, ch);
         ctx.strokeStyle = '#34d399';
         ctx.lineWidth = 2;
         ctx.strokeRect(cx, cy, cw, ch);
 
-        // 컨베이어 벨트 트랙 및 롤러
         ctx.fillStyle = '#334155';
         ctx.fillRect(cx + 4, cy + 23, cw - 8, 7);
         for (let r = 0; r < 6; r++) {
@@ -1049,7 +1109,6 @@ export default function PixelRpgOffice({
           ctx.arc(cx + 10 + r * 15, cy + 26.5, 2, 0, Math.PI * 2);
           ctx.fill();
         }
-        // 이동하는 의료기기/제품 패키지 박스들
         for (let b = 0; b < 3; b++) {
           const bx = cx + 8 + ((b * 30 + Math.floor(f * 0.5)) % (cw - 24));
           ctx.fillStyle = b % 2 === 0 ? '#38bdf8' : '#fbbf24';
@@ -1057,11 +1116,9 @@ export default function PixelRpgOffice({
           ctx.fillStyle = '#ffffff';
           ctx.fillRect(bx + 3, cy + 14, 6, 3);
         }
-        // 비전 스캐너 레이저
         ctx.fillStyle = 'rgba(52, 211, 153, 0.45)';
         ctx.fillRect(cx + cw / 2 - 2, cy + 3, 4, 20);
 
-        // QA 체크리스트 보드 (우측 상단)
         const qbx = rx + rw - 68;
         const qby = ry + 18;
         ctx.fillStyle = '#f8fafc';
@@ -1075,35 +1132,7 @@ export default function PixelRpgOffice({
           ctx.fillStyle = '#334155';
           ctx.fillRect(qbx + 15, qby + 8 + i * 9, 32, 3);
         }
-
-        // 원형 QA 분임조 테이블 & 안전모 (하단 좌측)
-        const tx = rx + 95;
-        const ty = ry + rh - 36;
-        ctx.fillStyle = 'rgba(0,0,0,0.35)';
-        ctx.beginPath();
-        ctx.ellipse(tx, ty + 4, 24, 14, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#1e293b';
-        ctx.beginPath();
-        ctx.ellipse(tx, ty, 22, 13, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = '#38bdf8';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-
-        // 노란 안전모 (Safety Helmet) 2개
-        const drawHelmet = (hx: number, hy: number) => {
-          ctx.fillStyle = '#facc15';
-          ctx.beginPath();
-          ctx.arc(hx, hy, 6, Math.PI, 0);
-          ctx.fill();
-          ctx.fillStyle = '#eab308';
-          ctx.fillRect(hx - 7, hy - 1, 14, 2.5);
-        };
-        drawHelmet(tx - 7, ty - 2);
-        drawHelmet(tx + 8, ty + 2);
       } else if (rKey === 'FIN_ROOM') {
-        // 4) 재무·데이터팀: 대형 상승 차트 보드 & 서버랙
         const fbx = rx + rw - 82;
         const fby = ry + 18;
         ctx.fillStyle = '#090d16';
@@ -1112,7 +1141,6 @@ export default function PixelRpgOffice({
         ctx.lineWidth = 2;
         ctx.strokeRect(fbx, fby, 68, 36);
 
-        // 상승 막대 & 꺾은선 차트
         const bars = [10, 15, 13, 21, 27];
         bars.forEach((bh, idx) => {
           ctx.fillStyle = idx === 4 ? '#34d399' : '#0ea5e9';
@@ -1127,22 +1155,7 @@ export default function PixelRpgOffice({
         ctx.lineTo(fbx + 46, fby + 11);
         ctx.lineTo(fbx + 56, fby + 6);
         ctx.stroke();
-
-        // 좌측 금융 데이터 서버랙
-        const sx = rx + 20;
-        const sy = ry + 26;
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(sx, sy, 34, 38);
-        ctx.strokeStyle = '#fbbf24';
-        ctx.lineWidth = 1.5;
-        ctx.strokeRect(sx, sy, 34, 38);
-        for (let i = 0; i < 3; i++) {
-          ctx.fillStyle = (f + i * 12) % 30 < 15 ? '#34d399' : '#fbbf24';
-          ctx.fillRect(sx + 5, sy + 6 + i * 10, 5, 3);
-        }
       } else if (rKey === 'MKT_ROOM') {
-        // 6) 마케팅·전략팀: 세계지도, 아이디어 전구 보드, 핑크 소파
-        // 세계지도 보드 (상단 좌측)
         const mx = rx + 20;
         const my = ry + 22;
         ctx.fillStyle = '#0c4a6e';
@@ -1150,98 +1163,125 @@ export default function PixelRpgOffice({
         ctx.strokeStyle = '#38bdf8';
         ctx.lineWidth = 1.5;
         ctx.strokeRect(mx, my, 76, 36);
-        // 대륙 실루엣
         ctx.fillStyle = '#34d399';
         ctx.beginPath();
         ctx.ellipse(mx + 18, my + 14, 9, 6, 0.2, 0, Math.PI * 2);
-        ctx.ellipse(mx + 24, my + 25, 5, 6, -0.2, 0, Math.PI * 2);
         ctx.ellipse(mx + 46, my + 13, 14, 7, 0, 0, Math.PI * 2);
-        ctx.ellipse(mx + 58, my + 26, 6, 4, 0, 0, Math.PI * 2);
-        ctx.fill();
-        // 글로벌 거점 핀
-        ctx.fillStyle = '#f43f5e';
-        ctx.beginPath();
-        ctx.arc(mx + 18, my + 13, 2.2, 0, Math.PI * 2);
-        ctx.arc(mx + 52, my + 14, 2.2, 0, Math.PI * 2);
-        ctx.fill();
-
-        // 아이디어 전구 보드 (우측 상단)
-        const ibx = rx + rw - 72;
-        const iby = ry + 20;
-        ctx.fillStyle = '#f8fafc';
-        ctx.fillRect(ibx, iby, 56, 34);
-        ctx.strokeStyle = '#f472b6';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(ibx, iby, 56, 34);
-        // 반짝이는 전구 아이콘
-        ctx.fillStyle = '#facc15';
-        ctx.beginPath();
-        ctx.arc(ibx + 16, iby + 15, 7, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#64748b';
-        ctx.fillRect(ibx + 13, iby + 21, 6, 4);
-        // 컬러 포스트잇
-        ctx.fillStyle = '#f43f5e';
-        ctx.fillRect(ibx + 30, iby + 7, 9, 8);
-        ctx.fillStyle = '#38bdf8';
-        ctx.fillRect(ibx + 41, iby + 7, 9, 8);
-        ctx.fillStyle = '#a855f7';
-        ctx.fillRect(ibx + 35, iby + 18, 10, 8);
-
-        // 핑크 디자이너 소파 (하단 좌측)
-        const psx = rx + 62;
-        const psy = ry + rh - 44;
-        ctx.fillStyle = 'rgba(0,0,0,0.35)';
-        ctx.fillRect(psx - 2, psy + 4, 68, 24);
-        ctx.fillStyle = '#db2777';
-        ctx.beginPath();
-        ctx.roundRect(psx, psy, 64, 22, 7);
-        ctx.fill();
-        ctx.fillStyle = '#f472b6';
-        ctx.beginPath();
-        ctx.roundRect(psx + 5, psy + 5, 25, 14, 4);
-        ctx.roundRect(psx + 34, psy + 5, 25, 14, 4);
         ctx.fill();
       }
     };
 
-    const drawBookshelf = (ctx: CanvasRenderingContext2D, bx: number, by: number, isGlowing: boolean, f: number) => {
+    const drawBookshelf = (
+      ctx: CanvasRenderingContext2D,
+      bx: number,
+      by: number,
+      isGlowing: boolean,
+      f: number,
+      bgLoaded: boolean
+    ) => {
       if (isGlowing) {
-        const shelfGlow = ctx.createRadialGradient(bx, by - 5, 6, bx, by - 5, 52);
-        shelfGlow.addColorStop(0, 'rgba(250, 204, 21, 0.45)');
-        shelfGlow.addColorStop(0.5, 'rgba(56, 189, 248, 0.2)');
+        const shelfGlow = ctx.createRadialGradient(bx, by - 5, 6, bx, by - 5, 56);
+        shelfGlow.addColorStop(0, 'rgba(250, 204, 21, 0.55)');
+        shelfGlow.addColorStop(0.5, 'rgba(56, 189, 248, 0.24)');
         shelfGlow.addColorStop(1, 'rgba(56, 189, 248, 0)');
         ctx.fillStyle = shelfGlow;
         ctx.beginPath();
-        ctx.arc(bx, by - 5, 52, 0, Math.PI * 2);
+        ctx.arc(bx, by - 5, 56, 0, Math.PI * 2);
         ctx.fill();
       }
-      ctx.fillStyle = 'rgba(0,0,0,0.35)';
-      ctx.fillRect(bx - 30, by - 18, 64, 36);
-      ctx.fillStyle = '#451a03';
-      ctx.fillRect(bx - 32, by - 22, 64, 34);
-      ctx.fillStyle = '#78350f';
-      ctx.fillRect(bx - 29, by - 19, 58, 28);
-      const colors = ['#f43f5e', '#38bdf8', '#10b981', '#fbbf24', '#a855f7', '#fb923c'];
-      for (let r = 0; r < 2; r++) {
-        for (let i = 0; i < 6; i++) {
-          ctx.fillStyle = colors[(i + r * 2) % colors.length];
-          ctx.fillRect(bx - 25 + i * 8, by - 16 + r * 13, 6, 10);
+
+      if (!bgLoaded) {
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        ctx.fillRect(bx - 30, by - 18, 64, 36);
+        ctx.fillStyle = '#451a03';
+        ctx.fillRect(bx - 32, by - 22, 64, 34);
+        ctx.fillStyle = '#78350f';
+        ctx.fillRect(bx - 29, by - 19, 58, 28);
+        const colors = ['#f43f5e', '#38bdf8', '#10b981', '#fbbf24', '#a855f7', '#fb923c'];
+        for (let r = 0; r < 2; r++) {
+          for (let i = 0; i < 6; i++) {
+            ctx.fillStyle = colors[(i + r * 2) % colors.length];
+            ctx.fillRect(bx - 25 + i * 8, by - 16 + r * 13, 6, 10);
+          }
         }
       }
+
       if (isGlowing) {
+        ctx.save();
         ctx.strokeStyle = f % 16 < 8 ? '#fde047' : '#38bdf8';
-        ctx.lineWidth = 3;
-        ctx.strokeRect(bx - 35, by - 25, 70, 40);
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.roundRect(bx - 34, by - 24, 68, 38, 6);
+        ctx.stroke();
+
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+        ctx.beginPath();
+        ctx.roundRect(bx - 48, by - 42, 96, 16, 8);
+        ctx.fill();
         ctx.fillStyle = '#fef08a';
         ctx.font = 'bold 9.5px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('📚 기존 결재철 인출!', bx, by - 28);
+        ctx.fillText('📚 기존 결재철 인출!', bx, by - 31);
+        ctx.restore();
       }
     };
 
-    const drawDesk = (ctx: CanvasRenderingContext2D, dx: number, dy: number, isWorking: boolean, isSelectedRoom: boolean, f: number) => {
-      // 체어 등받이
+    // 책상 렌더링: office_bg.png 로드 시에는 원화 가구를 가리지 않고 모니터 네온 블룸(createRadialGradient)과 전경 모니터만 투명하게 합성
+    const drawDesk = (
+      ctx: CanvasRenderingContext2D,
+      dx: number,
+      dy: number,
+      isWorking: boolean,
+      isSelectedRoom: boolean,
+      f: number,
+      bgLoaded: boolean
+    ) => {
+      if (bgLoaded) {
+        // 작업 중인 책상 모니터 위치에 은은하게 맥동하는 시안/에메랄드 네온 블룸 광원만 투명하게 오버레이
+        if (isWorking || isSelectedRoom) {
+          const bloomRadius = isWorking ? 42 + Math.sin(f * 0.14) * 5 : 26;
+          const monitorBloom = ctx.createRadialGradient(dx, dy + 6, 2, dx, dy + 6, bloomRadius);
+          if (isWorking) {
+            monitorBloom.addColorStop(0, 'rgba(52, 211, 153, 0.55)');
+            monitorBloom.addColorStop(0.45, 'rgba(56, 189, 248, 0.28)');
+            monitorBloom.addColorStop(1, 'rgba(56, 189, 248, 0)');
+          } else {
+            monitorBloom.addColorStop(0, 'rgba(56, 189, 248, 0.22)');
+            monitorBloom.addColorStop(1, 'rgba(56, 189, 248, 0)');
+          }
+          ctx.save();
+          ctx.fillStyle = monitorBloom;
+          ctx.beginPath();
+          ctx.arc(dx, dy + 6, bloomRadius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // 캐릭터가 책상 뒤에 자연스럽게 앉아 보이도록 모니터 후면 베젤만 깔끔하게 정합
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.roundRect(dx - 16, dy + 1, 32, 16, 3);
+        ctx.fill();
+        ctx.strokeStyle = isWorking ? '#34d399' : '#334155';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+
+        // 모니터 스탠드
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(dx - 3, dy + 17, 6, 4);
+        ctx.fillRect(dx - 8, dy + 20, 16, 2);
+
+        if (isWorking) {
+          const lineY = f % 8;
+          ctx.fillStyle = '#34d399';
+          ctx.fillRect(dx - 12, dy + 5 + (lineY % 4), 16, 2);
+          ctx.fillStyle = '#38bdf8';
+          ctx.fillRect(dx - 12, dy + 11, 22, 2);
+        }
+        return;
+      }
+
+      // 폴백 모드: 프로시저럴 체어 + 우드 데스크 + 스탠드 조명 + 듀얼 모니터
       ctx.fillStyle = '#0f172a';
       ctx.beginPath();
       ctx.roundRect(dx - 14, dy - 16, 28, 14, 4);
@@ -1251,7 +1291,6 @@ export default function PixelRpgOffice({
       ctx.roundRect(dx - 11, dy - 14, 22, 10, 3);
       ctx.fill();
 
-      // 데스크 그림자 및 우드 상판
       ctx.fillStyle = 'rgba(0,0,0,0.4)';
       ctx.beginPath();
       ctx.roundRect(dx - 41, dy + 9, 82, 33, 4);
@@ -1265,7 +1304,6 @@ export default function PixelRpgOffice({
       ctx.fillStyle = '#451a03';
       ctx.fillRect(dx - 36, dy + 28, 72, 5);
 
-      // 책상 스탠드 조명 (Desk Lamp) + 따뜻한 광원 효과
       const lx = dx - 31;
       const ly = dy + 8;
       ctx.fillStyle = '#475569';
@@ -1290,7 +1328,6 @@ export default function PixelRpgOffice({
       ctx.arc(lx + 6, ly + 6, 18, 0, Math.PI * 2);
       ctx.fill();
 
-      // 작업 중인 모니터 화면 은은한 네온 글로우(Bloom) 효과 (createRadialGradient)
       if (isWorking || isSelectedRoom) {
         const bloomRadius = isWorking ? 38 + Math.sin(f * 0.14) * 4 : 24;
         const monitorBloom = ctx.createRadialGradient(dx - 4, dy + 8, 2, dx - 4, dy + 8, bloomRadius);
@@ -1310,7 +1347,6 @@ export default function PixelRpgOffice({
         ctx.restore();
       }
 
-      // 메인 모니터 & 서브 모니터
       ctx.fillStyle = '#0f172a';
       ctx.fillRect(dx - 22, dy, 34, 17);
       ctx.fillStyle = isWorking ? '#022c22' : isSelectedRoom ? '#1e293b' : '#334155';
@@ -1321,7 +1357,6 @@ export default function PixelRpgOffice({
       ctx.fillStyle = isWorking ? '#0c4a6e' : '#1e293b';
       ctx.fillRect(dx + 16, dy + 4, 12, 10);
 
-      // 키보드 & 머그컵
       ctx.fillStyle = '#cbd5e1';
       ctx.fillRect(dx - 12, dy + 19, 20, 4);
       ctx.fillStyle = '#f8fafc';
@@ -1340,7 +1375,7 @@ export default function PixelRpgOffice({
       }
     };
 
-    // 2.5등신 SD(Chibi) 아케이드 스타일 캐릭터 렌더링
+    // 2.5등신 SD(Chibi) 아케이드 스타일 캐릭터 렌더링 (풍성한 헤어 볼륨, 엔젤링 하이라이트, 반짝이는 눈동자, 안경/헤드셋)
     const drawStaffCharacter = (
       ctx: CanvasRenderingContext2D,
       ag: OfficeStaff,
@@ -1350,15 +1385,15 @@ export default function PixelRpgOffice({
       f: number
     ) => {
       const walkCycle = isWalking ? Math.sin(f * 0.22 * speedRef.current + idx) : 0;
-      const idleBreath = Math.sin(f * 0.08 + idx) * 0.8;
-      const workBob = isWorkingDesk ? Math.sin(f * 0.32 + idx) * 1.6 : idleBreath;
-      const bounceY = isWalking ? Math.abs(walkCycle) * -3.8 : workBob;
+      const idleBreath = Math.sin(f * 0.08 + idx) * 0.85;
+      const workBob = isWorkingDesk ? Math.sin(f * 0.32 + idx) * 1.65 : idleBreath;
+      const bounceY = isWalking ? Math.abs(walkCycle) * -4.0 : workBob;
 
       // 보행 시 미세한 좌우 스웨이(Sway)
       const swayX = isWalking
         ? Math.sin(f * 0.22 * speedRef.current + idx) * 1.8
         : isWorkingDesk
-        ? Math.sin(f * 0.16 + idx) * 0.6
+        ? Math.sin(f * 0.16 + idx) * 0.65
         : 0;
 
       // 숨쉬기 탄성 및 보행 탄성 (Squash & Stretch)
@@ -1375,94 +1410,123 @@ export default function PixelRpgOffice({
 
       // 바닥 그림자 & 선택된 팀 오라
       if (ag.isSelectedTeam) {
-        const shadowGlow = ctx.createRadialGradient(ag.x, ag.y + 14, 2, ag.x, ag.y + 14, 23);
+        const shadowGlow = ctx.createRadialGradient(ag.x, ag.y + 13, 2, ag.x, ag.y + 13, 24);
         if (ag.taskLabel.includes('반려')) {
-          shadowGlow.addColorStop(0, 'rgba(244, 63, 94, 0.68)');
+          shadowGlow.addColorStop(0, 'rgba(244, 63, 94, 0.72)');
           shadowGlow.addColorStop(1, 'rgba(244, 63, 94, 0)');
         } else if (ag.isShelfMode) {
-          shadowGlow.addColorStop(0, 'rgba(250, 204, 21, 0.68)');
+          shadowGlow.addColorStop(0, 'rgba(250, 204, 21, 0.72)');
           shadowGlow.addColorStop(1, 'rgba(250, 204, 21, 0)');
         } else {
-          shadowGlow.addColorStop(0, 'rgba(16, 185, 129, 0.6)');
+          shadowGlow.addColorStop(0, 'rgba(16, 185, 129, 0.62)');
           shadowGlow.addColorStop(1, 'rgba(16, 185, 129, 0)');
         }
         ctx.fillStyle = shadowGlow;
         ctx.beginPath();
-        ctx.ellipse(ag.x, ag.y + 14, 21, 8.5, 0, 0, Math.PI * 2);
+        ctx.ellipse(ag.x, ag.y + 13, 22, 8.5, 0, 0, Math.PI * 2);
         ctx.fill();
       } else {
         ctx.fillStyle = 'rgba(0,0,0,0.35)';
         ctx.beginPath();
-        ctx.ellipse(ag.x, ag.y + 14, 13, 5, 0, 0, Math.PI * 2);
+        ctx.ellipse(ag.x, ag.y + 13, 13, 5, 0, 0, Math.PI * 2);
         ctx.fill();
       }
 
       const pivotX = cx;
-      const pivotY = ag.y + 13;
+      const pivotY = ag.y + 12;
       ctx.save();
       ctx.translate(pivotX, pivotY);
       ctx.scale(scaleX, scaleY);
       ctx.translate(-pivotX, -pivotY);
 
       // SD 다리 & 신발
-      const leftLegY = isWalking ? Math.round(walkCycle * 3.5) : 0;
-      const rightLegY = isWalking ? Math.round(-walkCycle * 3.5) : 0;
+      const leftLegY = isWalking ? Math.round(walkCycle * 3.8) : 0;
+      const rightLegY = isWalking ? Math.round(-walkCycle * 3.8) : 0;
       ctx.fillStyle = '#0f172a';
       ctx.beginPath();
-      ctx.roundRect(cx - 7, cy + 5 + leftLegY, 5.5, 8, 2);
-      ctx.roundRect(cx + 1.5, cy + 5 + rightLegY, 5.5, 8, 2);
+      ctx.roundRect(cx - 7, cy + 4 + leftLegY, 5.5, 8, 2.2);
+      ctx.roundRect(cx + 1.5, cy + 4 + rightLegY, 5.5, 8, 2.2);
       ctx.fill();
 
       // SD 상체 자켓 & 셔츠/넥타이
       ctx.fillStyle = ag.shirtColor;
       ctx.beginPath();
-      ctx.roundRect(cx - 11, cy - 6, 22, 13, 4);
+      ctx.roundRect(cx - 11.5, cy - 6.5, 23, 13, 4.5);
       ctx.fill();
       ctx.strokeStyle = '#0f172a';
-      ctx.lineWidth = 1.2;
+      ctx.lineWidth = 1.4;
       ctx.stroke();
 
+      // 화이트 칼라 셔츠 & 직급별 넥타이/스카프
       ctx.fillStyle = '#f8fafc';
-      ctx.fillRect(cx - 2.5, cy - 5, 5, 7);
-      ctx.fillStyle = ag.role === 'CEO' ? '#fbbf24' : ag.role === 'SUPERVISOR' ? '#f43f5e' : '#38bdf8';
-      ctx.fillRect(cx - 1, cy - 3, 2, 6);
+      ctx.beginPath();
+      ctx.moveTo(cx - 3.5, cy - 6);
+      ctx.lineTo(cx + 3.5, cy - 6);
+      ctx.lineTo(cx, cy + 1);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = ag.role === 'CEO' ? '#ef4444' : ag.role === 'SUPERVISOR' ? '#fbbf24' : '#38bdf8';
+      ctx.fillRect(cx - 1.2, cy - 4, 2.4, 6.5);
 
       // SD 팔과 손
-      const armOffset = isWorkingDesk ? Math.round(Math.sin(f * 0.5 + idx) * 2.8) : Math.round(walkCycle * 2.2);
+      const armOffset = isWorkingDesk ? Math.round(Math.sin(f * 0.5 + idx) * 2.8) : Math.round(walkCycle * 2.4);
       ctx.fillStyle = ag.shirtColor;
       ctx.beginPath();
-      ctx.roundRect(cx - 15, cy - 4 + armOffset, 4.5, 9, 2);
-      ctx.roundRect(cx + 10.5, cy - 4 - armOffset, 4.5, 9, 2);
+      ctx.roundRect(cx - 15.5, cy - 4.5 + armOffset, 4.8, 9, 2.2);
+      ctx.roundRect(cx + 10.7, cy - 4.5 - armOffset, 4.8, 9, 2.2);
       ctx.fill();
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
       ctx.fillStyle = '#fed7aa';
       ctx.beginPath();
-      ctx.arc(cx - 12.8, cy + 5.5 + armOffset, 2.2, 0, Math.PI * 2);
-      ctx.arc(cx + 12.8, cy + 5.5 - armOffset, 2.2, 0, Math.PI * 2);
+      ctx.arc(cx - 13.1, cy + 5.2 + armOffset, 2.3, 0, Math.PI * 2);
+      ctx.arc(cx + 13.1, cy + 5.2 - armOffset, 2.3, 0, Math.PI * 2);
       ctx.fill();
 
-      // 2.5등신 SD 헤드 아웃라인 & 풍성한 헤어 볼륨
+      // 2.5등신 SD 헤드 아웃라인 & 풍성한 후면 헤어 볼륨
       ctx.fillStyle = '#0f172a';
       ctx.beginPath();
-      ctx.roundRect(cx - 15, cy - 29, 30, 25, 8);
+      ctx.roundRect(cx - 16, cy - 30.5, 32, 26, 9);
       ctx.fill();
+
+      // 캐릭터별 사이드 번/포니테일 볼륨 디테일
+      if (idx % 3 === 1 && ag.role !== 'CEO') {
+        ctx.fillStyle = ag.hairShade;
+        ctx.beginPath();
+        ctx.arc(cx, cy - 30, 6.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+      } else if (idx % 3 === 2 && ag.role !== 'CEO') {
+        ctx.fillStyle = ag.hairColor;
+        ctx.beginPath();
+        ctx.ellipse(cx + 14.5, cy - 20, 4.5, 7, 0.35, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+      }
 
       if (ag.facing === 'UP') {
         ctx.fillStyle = ag.hairColor;
         ctx.beginPath();
-        ctx.roundRect(cx - 14, cy - 28, 28, 23, 7);
+        ctx.roundRect(cx - 14.8, cy - 29.2, 29.6, 23.8, 8);
         ctx.fill();
         ctx.fillStyle = ag.hairShade;
-        ctx.fillRect(cx - 13, cy - 11, 26, 6);
+        ctx.fillRect(cx - 13.8, cy - 11.5, 27.6, 6);
         // 헤어 엔젤링 하이라이트
-        ctx.fillStyle = 'rgba(255,255,255,0.45)';
+        ctx.fillStyle = 'rgba(255,255,255,0.52)';
         ctx.beginPath();
-        ctx.ellipse(cx, cy - 22, 9, 2.5, 0, 0, Math.PI * 2);
+        ctx.ellipse(cx, cy - 22.5, 9.5, 2.6, 0, 0, Math.PI * 2);
         ctx.fill();
       } else {
-        // 얼굴 피부
+        // 따뜻한 살구빛 SD 얼굴 피부
         ctx.fillStyle = '#ffedd5';
         ctx.beginPath();
-        ctx.roundRect(cx - 12.5, cy - 24, 25, 19, 6);
+        ctx.roundRect(cx - 13, cy - 24.5, 26, 19.5, 6.5);
         ctx.fill();
 
         const eyeShiftX = ag.facing === 'LEFT' ? -2 : ag.facing === 'RIGHT' ? 2 : 0;
@@ -1470,86 +1534,118 @@ export default function PixelRpgOffice({
         // 발그레한 볼터치
         ctx.fillStyle = 'rgba(251, 113, 133, 0.65)';
         ctx.beginPath();
-        ctx.ellipse(cx - 8.5 + eyeShiftX, cy - 10.5, 2.8, 1.6, 0, 0, Math.PI * 2);
-        ctx.ellipse(cx + 8.5 + eyeShiftX, cy - 10.5, 2.8, 1.6, 0, 0, Math.PI * 2);
+        ctx.ellipse(cx - 8.8 + eyeShiftX, cy - 10.5, 3.0, 1.7, 0, 0, Math.PI * 2);
+        ctx.ellipse(cx + 8.8 + eyeShiftX, cy - 10.5, 3.0, 1.7, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // 반짝이는 큰 아케이드 눈동자 (듀얼 하이라이트)
+        // 미소 입매
+        ctx.strokeStyle = '#9a3412';
+        ctx.lineWidth = 1.1;
+        ctx.beginPath();
+        ctx.arc(cx + eyeShiftX, cy - 9.8, 1.8, 0.15 * Math.PI, 0.85 * Math.PI);
+        ctx.stroke();
+
+        // 반짝이는 큰 아케이드 눈동자 (듀얼 스타라이트 하이라이트)
         if ((f + idx * 31) % 160 > 5) {
-          // 눈동자 베이스
+          // 눈동자 베이스 + 속눈썹 라인
           ctx.fillStyle = '#0f172a';
           ctx.beginPath();
-          ctx.roundRect(cx - 7.5 + eyeShiftX, cy - 16.5, 4.2, 5.2, 1.5);
-          ctx.roundRect(cx + 3.3 + eyeShiftX, cy - 16.5, 4.2, 5.2, 1.5);
+          ctx.roundRect(cx - 8.0 + eyeShiftX, cy - 17.0, 4.6, 5.6, 1.8);
+          ctx.roundRect(cx + 3.4 + eyeShiftX, cy - 17.0, 4.6, 5.6, 1.8);
           ctx.fill();
-          // 눈동자 하단 컬러 반사광
+
+          // 눈동자 하단 보석 반사광
           ctx.fillStyle = ag.hairColor;
-          ctx.fillRect(cx - 6.8 + eyeShiftX, cy - 13, 2.8, 1.4);
-          ctx.fillRect(cx + 4.0 + eyeShiftX, cy - 13, 2.8, 1.4);
-          // 메인 화이트 별빛 하이라이트
+          ctx.fillRect(cx - 7.2 + eyeShiftX, cy - 13.2, 3.0, 1.6);
+          ctx.fillRect(cx + 4.2 + eyeShiftX, cy - 13.2, 3.0, 1.6);
+
+          // 메인 화이트 별빛 하이라이트 + 서브 하이라이트
           ctx.fillStyle = '#ffffff';
-          ctx.fillRect(cx - 7.0 + eyeShiftX, cy - 16.0, 2.0, 2.0);
-          ctx.fillRect(cx + 3.8 + eyeShiftX, cy - 16.0, 2.0, 2.0);
-          ctx.fillRect(cx - 4.5 + eyeShiftX, cy - 13.0, 1.0, 1.0);
-          ctx.fillRect(cx + 6.3 + eyeShiftX, cy - 13.0, 1.0, 1.0);
+          ctx.beginPath();
+          ctx.arc(cx - 6.4 + eyeShiftX, cy - 15.3, 1.25, 0, Math.PI * 2);
+          ctx.arc(cx + 5.0 + eyeShiftX, cy - 15.3, 1.25, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillRect(cx - 4.6 + eyeShiftX, cy - 13.0, 1.1, 1.1);
+          ctx.fillRect(cx + 6.6 + eyeShiftX, cy - 13.0, 1.1, 1.1);
         } else {
           // 눈 깜빡임
           ctx.fillStyle = '#0f172a';
-          ctx.fillRect(cx - 7 + eyeShiftX, cy - 14, 4, 1.5);
-          ctx.fillRect(cx + 3 + eyeShiftX, cy - 14, 4, 1.5);
+          ctx.fillRect(cx - 7.5 + eyeShiftX, cy - 14.2, 4.5, 1.6);
+          ctx.fillRect(cx + 3.0 + eyeShiftX, cy - 14.2, 4.5, 1.6);
         }
 
         // 풍성한 앞머리 & 옆머리 볼륨
         ctx.fillStyle = ag.hairShade;
         ctx.beginPath();
-        ctx.roundRect(cx - 14.5, cy - 30, 29, 7, 5);
+        ctx.roundRect(cx - 15.2, cy - 30.5, 30.4, 7.8, 5.5);
         ctx.fill();
 
         ctx.fillStyle = ag.hairColor;
         ctx.beginPath();
-        ctx.roundRect(cx - 14, cy - 28.5, 28, 8.5, 5);
+        ctx.roundRect(cx - 14.6, cy - 29.0, 29.2, 9.2, 5.5);
         ctx.fill();
+
+        // 앞머리 중앙 가닥 디테일
+        ctx.beginPath();
+        ctx.moveTo(cx - 5, cy - 21);
+        ctx.lineTo(cx - 1, cy - 17.5);
+        ctx.lineTo(cx + 3, cy - 21);
+        ctx.closePath();
+        ctx.fill();
+
         // 옆머리 락(Locks)
         ctx.beginPath();
-        ctx.roundRect(cx - 14.5, cy - 22, 4, 13, 2);
-        ctx.roundRect(cx + 10.5, cy - 22, 4, 13, 2);
+        ctx.roundRect(cx - 15.2, cy - 22.5, 4.4, 13.5, 2.2);
+        ctx.roundRect(cx + 10.8, cy - 22.5, 4.4, 13.5, 2.2);
         ctx.fill();
+
         // 정수리 바보털(아호게) 볼륨 포인트
         ctx.beginPath();
-        ctx.ellipse(cx + 2, cy - 30.5, 4, 2, -0.3, 0, Math.PI * 2);
+        ctx.ellipse(cx + 2, cy - 31.2, 4.2, 2.0, -0.3, 0, Math.PI * 2);
         ctx.fill();
 
-        // 헤어 하이라이트 (광택)
-        ctx.fillStyle = 'rgba(255,255,255,0.52)';
+        // 엔젤링 헤어 하이라이트 (광택 아치)
+        ctx.fillStyle = 'rgba(255,255,255,0.58)';
         ctx.beginPath();
-        ctx.roundRect(cx - 9, cy - 27, 16, 2.5, 1.2);
+        ctx.roundRect(cx - 9.5, cy - 27.3, 15, 2.4, 1.2);
+        ctx.roundRect(cx + 6.5, cy - 27.3, 3.2, 2.4, 1.2);
         ctx.fill();
 
-        // 액세서리 디테일 (안경 / 헤드셋 / 대표 배지)
+        // 액세서리 디테일 (안경 / 헤드셋 / 대표 배지 / 안전 배지)
         if (ag.accessory === 'GLASSES') {
-          ctx.strokeStyle = '#e2e8f0';
-          ctx.lineWidth = 1.2;
-          ctx.strokeRect(cx - 8.5 + eyeShiftX, cy - 17, 5.8, 5.2);
-          ctx.strokeRect(cx + 2.5 + eyeShiftX, cy - 17, 5.8, 5.2);
+          ctx.strokeStyle = '#f8fafc';
+          ctx.lineWidth = 1.3;
           ctx.beginPath();
-          ctx.moveTo(cx - 2.7 + eyeShiftX, cy - 14.5);
-          ctx.lineTo(cx + 2.5 + eyeShiftX, cy - 14.5);
+          ctx.roundRect(cx - 9.0 + eyeShiftX, cy - 17.5, 6.2, 5.5, 1.2);
+          ctx.roundRect(cx + 2.8 + eyeShiftX, cy - 17.5, 6.2, 5.5, 1.2);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(cx - 2.8 + eyeShiftX, cy - 14.8);
+          ctx.lineTo(cx + 2.8 + eyeShiftX, cy - 14.8);
           ctx.stroke();
         } else if (ag.accessory === 'HEADSET') {
           ctx.strokeStyle = '#38bdf8';
-          ctx.lineWidth = 2;
+          ctx.lineWidth = 2.2;
           ctx.beginPath();
-          ctx.arc(cx, cy - 20, 14.5, Math.PI * 1.05, Math.PI * 1.95);
+          ctx.arc(cx, cy - 20.5, 15.2, Math.PI * 1.05, Math.PI * 1.95);
           ctx.stroke();
           ctx.fillStyle = '#0284c7';
           ctx.beginPath();
-          ctx.roundRect(cx - 16.5, cy - 19, 3.5, 7, 1.5);
-          ctx.roundRect(cx + 13, cy - 19, 3.5, 7, 1.5);
+          ctx.roundRect(cx - 17.2, cy - 19.5, 3.8, 7.5, 1.8);
+          ctx.roundRect(cx + 13.4, cy - 19.5, 3.8, 7.5, 1.8);
           ctx.fill();
+          ctx.fillStyle = '#7dd3fc';
+          ctx.fillRect(cx - 16.5, cy - 17.5, 1.5, 3.5);
+          ctx.fillRect(cx + 15.0, cy - 17.5, 1.5, 3.5);
         } else if (ag.accessory === 'CROWN_PIN') {
           ctx.fillStyle = '#fbbf24';
           ctx.beginPath();
-          ctx.arc(cx, cy - 29.5, 3, 0, Math.PI * 2);
+          ctx.arc(cx + 5.5, cy - 2.5, 2.2, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (ag.accessory === 'SAFETY_BADGE') {
+          ctx.fillStyle = '#10b981';
+          ctx.beginPath();
+          ctx.arc(cx + 5.5, cy - 2.5, 2.2, 0, Math.PI * 2);
           ctx.fill();
         }
       }
@@ -1565,6 +1661,7 @@ export default function PixelRpgOffice({
       ctx.restore();
     };
 
+    // 캐릭터 하단 둥근 다크 슬레이트 캡슐 네임태그 (윤지아 (대기), 신영호 대표 에메랄드 체크 아이콘 포함)
     const drawStaffOverlay = (
       ctx: CanvasRenderingContext2D,
       ag: OfficeStaff,
@@ -1573,61 +1670,131 @@ export default function PixelRpgOffice({
     ) => {
       const cx = Math.round(ag.x);
       const isInMeeting = detectRoomByPoint(ag.x, ag.y) === 'MEETING_ROOM' && !isWalking;
-      const labelY = isInMeeting ? Math.round(ag.y + 18) : Math.round(ag.y + 38);
+      const labelY =
+        ag.role === 'CEO'
+          ? Math.round(ag.y + 15)
+          : isInMeeting
+          ? Math.round(ag.y + 18)
+          : Math.round(ag.y + 28);
 
-      // 비활성(대기) 부서원: 알약 형태의 둥근 다크 네임태그 [이름 (대기)]
-      if (!ag.isSelectedTeam) {
-        const pillW = 78;
-        const pillH = 19;
-        const pillX = cx - pillW / 2;
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.86)';
+      // 1) 신영호 대표 (CEO) 전용 둥근 다크 슬레이트 캡슐 + 에메랄드 체크 아이콘
+      if (ag.role === 'CEO') {
+        const capW = 104;
+        const capH = 30;
+        const capX = cx - capW / 2;
+
+        ctx.save();
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
+        ctx.shadowBlur = 8;
+        ctx.shadowOffsetY = 2;
+
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.94)';
         ctx.beginPath();
-        ctx.roundRect(pillX, labelY, pillW, pillH, 9.5);
+        ctx.roundRect(capX, labelY, capW, capH, 8);
         ctx.fill();
-        ctx.strokeStyle = 'rgba(100, 116, 139, 0.65)';
+
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = reportUnlockedRef.current ? '#fbbf24' : 'rgba(148, 163, 184, 0.75)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // 상단 1열: 신영호 대표
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(ag.name, cx, labelY + 12);
+
+        // 하단 2열: 에메랄드 체크 아이콘 + 상태 텍스트
+        const iconX = capX + 16;
+        const iconY = labelY + 21.5;
+        ctx.fillStyle = '#10b981';
+        ctx.beginPath();
+        ctx.arc(iconX, iconY, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(iconX - 2.0, iconY + 0.2);
+        ctx.lineTo(iconX - 0.4, iconY + 1.8);
+        ctx.lineTo(iconX + 2.2, iconY - 1.5);
+        ctx.stroke();
+
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = 'bold 8.5px sans-serif';
+        ctx.textAlign = 'left';
+        const ceoSubLabel = ag.taskLabel.replace(/^✅\s*/, '').replace(/^📚\s*/, '').slice(0, 9);
+        ctx.fillText(ceoSubLabel, iconX + 7, labelY + 24.5);
+        ctx.restore();
+      } else if (!ag.isSelectedTeam) {
+        // 2) 비활성(대기) 부서원: 둥근 다크 슬레이트 캡슐 [윤지아 (대기)] + 부드러운 그림자
+        const pillW = 86;
+        const pillH = 20;
+        const pillX = cx - pillW / 2;
+
+        ctx.save();
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+        ctx.shadowBlur = 6;
+        ctx.shadowOffsetY = 2;
+
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+        ctx.beginPath();
+        ctx.roundRect(pillX, labelY, pillW, pillH, 10);
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.65)';
         ctx.lineWidth = 1.2;
         ctx.stroke();
 
-        ctx.fillStyle = '#64748b';
-        ctx.beginPath();
-        ctx.arc(pillX + 10, labelY + 9.5, 2.5, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = '#cbd5e1';
-        ctx.font = 'bold 9px sans-serif';
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 9.5px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(`${ag.name.split(' ')[0]} (대기)`, cx + 3, labelY + 12.5);
+        ctx.fillText(`${ag.name.split(' ')[0]} (대기)`, cx, labelY + 13.5);
+        ctx.restore();
         return;
-      }
+      } else {
+        // 3) 전담 투입 부서원: 둥근 다크 슬레이트 캡슐 + 실시간 프로그레스 바
+        const isReject = ag.taskLabel.includes('반려');
+        const capW = 106;
+        const capH = 28;
+        const capX = cx - capW / 2;
 
-      // 전담 투입 부서원: 둥근 아케이드 상태 배지 + 프로그레스 바
-      const isReject = ag.taskLabel.includes('반려');
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.94)';
-      ctx.beginPath();
-      ctx.roundRect(cx - 54, labelY, 108, 29, 8);
-      ctx.fill();
-      ctx.strokeStyle = isReject ? '#f43f5e' : ag.isShelfMode ? '#fbbf24' : isWorkingDesk ? '#38bdf8' : '#10b981';
-      ctx.lineWidth = 1.6;
-      ctx.stroke();
+        ctx.save();
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
+        ctx.shadowBlur = 8;
+        ctx.shadowOffsetY = 2;
 
-      ctx.fillStyle = '#f8fafc';
-      ctx.font = 'bold 10px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(ag.name, cx, labelY + 11.5);
-
-      ctx.fillStyle = '#1e293b';
-      ctx.beginPath();
-      ctx.roundRect(cx - 48, labelY + 15.5, 96, 9, 4.5);
-      ctx.fill();
-      if (ag.progress > 0) {
-        ctx.fillStyle = isReject ? '#f43f5e' : ag.isShelfMode ? '#f59e0b' : ag.progress >= 100 ? '#10b981' : '#0ea5e9';
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.94)';
         ctx.beginPath();
-        ctx.roundRect(cx - 48, labelY + 15.5, Math.max(8, Math.round((96 * ag.progress) / 100)), 9, 4.5);
+        ctx.roundRect(capX, labelY, capW, capH, 9);
         ctx.fill();
+
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = isReject ? '#f43f5e' : ag.isShelfMode ? '#fbbf24' : isWorkingDesk ? '#38bdf8' : '#10b981';
+        ctx.lineWidth = 1.6;
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 9.5px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(ag.name, cx, labelY + 11.5);
+
+        ctx.fillStyle = '#1e293b';
+        ctx.beginPath();
+        ctx.roundRect(cx - 46, labelY + 15, 92, 8.5, 4.2);
+        ctx.fill();
+        if (ag.progress > 0) {
+          ctx.fillStyle = isReject ? '#f43f5e' : ag.isShelfMode ? '#f59e0b' : ag.progress >= 100 ? '#10b981' : '#0ea5e9';
+          ctx.beginPath();
+          ctx.roundRect(cx - 46, labelY + 15, Math.max(8, Math.round((92 * ag.progress) / 100)), 8.5, 4.2);
+          ctx.fill();
+        }
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 7.8px sans-serif';
+        ctx.fillText(isWalking ? '🚶 이동 중..' : ag.taskLabel.slice(0, 14), cx, labelY + 22);
+        ctx.restore();
       }
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 8px sans-serif';
-      ctx.fillText(isWalking ? '🚶 이동 중..' : ag.taskLabel.slice(0, 14), cx, labelY + 23);
 
       if (!isWalking && ag.activeBubble) {
         if (ag.lastBubbleText !== ag.activeBubble) {
@@ -1637,6 +1804,7 @@ export default function PixelRpgOffice({
         ag.bubbleAnim = Math.min(1, ag.bubbleAnim + 0.085);
         const bScale = easeOutBack(ag.bubbleAnim);
 
+        const isReject = ag.taskLabel.includes('반려');
         const bw = 196;
         const bh = 32;
         let bx = cx - bw / 2;
@@ -1644,17 +1812,17 @@ export default function PixelRpgOffice({
 
         if (isInMeeting) {
           if (ag.role === 'CEO') {
-            bx = cx - bw + 20;
-            by = Math.round(ag.y - 68);
+            bx = cx - bw / 2;
+            by = Math.round(ag.y - 66);
           } else if (ag.role === 'SUPERVISOR') {
-            bx = cx - 20;
-            by = Math.round(ag.y - 68);
+            bx = cx - bw + 28;
+            by = Math.round(ag.y - 64);
           } else if (ag.role === 'WORKER1') {
             bx = cx - bw + 20;
-            by = Math.round(ag.y + 48);
+            by = Math.round(ag.y + 44);
           } else {
             bx = cx - 20;
-            by = Math.round(ag.y + 48);
+            by = Math.round(ag.y + 44);
           }
         }
 
@@ -1669,10 +1837,16 @@ export default function PixelRpgOffice({
         ctx.scale(bScale, bScale);
         ctx.translate(-centerBx, -centerBy);
 
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+        ctx.shadowBlur = 8;
+        ctx.shadowOffsetY = 2;
+
         ctx.fillStyle = isReject ? '#881337' : ag.isShelfMode ? '#fef3c7' : '#ffffff';
         ctx.beginPath();
         ctx.roundRect(bx, by, bw, bh, 8);
         ctx.fill();
+
+        ctx.shadowBlur = 0;
         ctx.strokeStyle = isReject ? '#fb7185' : ag.isShelfMode ? '#d97706' : '#0f172a';
         ctx.lineWidth = 1.8;
         ctx.stroke();
@@ -1702,166 +1876,195 @@ export default function PixelRpgOffice({
 
       ctx.clearRect(0, 0, CW, CH);
 
-      // 복도 바닥 타일
-      for (let y = 0; y < CH; y += 24) {
-        for (let x = 0; x < CW; x += 24) {
-          ctx.fillStyle = (Math.floor(x / 24) + Math.floor(y / 24)) % 2 === 0 ? '#334155' : '#293548';
-          ctx.fillRect(x, y, 24, 24);
-        }
-      }
-      // 중앙 복도 가이드 카펫 트랙
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.65)';
-      ctx.fillRect(20, CORRIDOR_Y - 20, CW - 40, 40);
-      ctx.strokeStyle = 'rgba(56, 189, 248, 0.25)';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(20, CORRIDOR_Y - 20, CW - 40, 40);
-
-      // 복도 화분 디테일 (방 사이 복도 포인트)
-      drawLushPotPlant(ctx, 375, CORRIDOR_Y - 12, f, 1.0);
-      drawLushPotPlant(ctx, 745, CORRIDOR_Y - 12, f, 1.0);
-      drawLushPotPlant(ctx, 34, CORRIDOR_Y - 12, f, 0.9);
-      drawLushPotPlant(ctx, 1086, CORRIDOR_Y - 12, f, 0.9);
-
+      const bgLoaded = bgLoadedRef.current && Boolean(bgImageRef.current);
       const staffList = Object.values(staffRef.current);
 
-      (Object.entries(ROOMS) as Array<[DeptRoomKey, typeof ROOMS.HR_ROOM]>).forEach(([rKey, r]) => {
-        const isRoomActive = staffList.some((s) => s.roomKey === rKey && s.isSelectedTeam && rKey !== 'MEETING_ROOM');
-        drawRoomFloor(ctx, r.rx, r.ry, r.rw, r.rh, r.floorType, r.badgeColor, isRoomActive, f);
+      if (bgLoaded && bgImageRef.current) {
+        // 1) public/office_bg.png 우선 렌더링 (고해상도 일러스트 디테일 100% 보존)
+        ctx.save();
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(bgImageRef.current, 0, 0, CW, CH);
+        ctx.restore();
 
-        if (r.ry < 100 && rKey !== 'QA_ROOM') {
-          drawWindowAndSunbeam(ctx, r.rx + 145, r.ry + 2, f);
-          drawWindowAndSunbeam(ctx, r.rx + 230, r.ry + 2, f);
-        }
+        // 각 부서실 하이브리드 스포트라이트 셰이딩 & 서가 히트 효과만 반투명 오버레이
+        (Object.entries(ROOMS) as Array<[DeptRoomKey, typeof ROOMS.HR_ROOM]>).forEach(([rKey, r]) => {
+          const isRoomActive = staffList.some((s) => s.roomKey === rKey && s.isSelectedTeam && rKey !== 'MEETING_ROOM');
+          drawHybridRoomSpotlight(ctx, r.rx, r.ry, r.rw, r.rh, r.badgeColor, isRoomActive, rKey, f);
 
-        drawMetalMoldingFrame(ctx, r.rx, r.ry, r.rw, r.rh, r.badgeColor, isRoomActive, r.doorX, r.doorY);
+          if (rKey !== 'MEETING_ROOM') {
+            const isShelfGlowing =
+              isRoomActive &&
+              (archiveHitFlashRef.current > 0 ||
+                staffList.some((s) => s.roomKey === rKey && Math.hypot(s.x - r.shelf.x, s.y - r.shelf.y) < 35));
+            drawBookshelf(ctx, r.shelf.x, r.shelf.y, isShelfGlowing, f, true);
 
-        if (rKey !== 'MEETING_ROOM') {
-          const isShelfGlowing =
-            isRoomActive &&
-            (archiveHitFlashRef.current > 0 ||
-              staffList.some((s) => s.roomKey === rKey && Math.hypot(s.x - r.shelf.x, s.y - r.shelf.y) < 35));
-          drawBookshelf(ctx, r.shelf.x, r.shelf.y, isShelfGlowing, f);
-          drawBookshelf(ctx, r.shelf.x + 88, r.shelf.y, false, f);
-          drawOfficeProps(ctx, r.rx, r.ry, r.rw, r.rh, rKey, f);
-        } else {
-          // 5) 중앙 회의실: 골드 월계관 엠블럼, 국기/사기, 의자 6개, 원형 회의 테이블
-          // VIP 레드/골드 카펫
-          ctx.fillStyle = '#78350f';
-          ctx.beginPath();
-          ctx.roundRect(r.rx + 42, r.ry + 62, r.rw - 84, r.rh - 90, 8);
-          ctx.fill();
-          ctx.fillStyle = '#fef3c7';
-          ctx.beginPath();
-          ctx.roundRect(r.rx + 46, r.ry + 66, r.rw - 92, r.rh - 98, 6);
-          ctx.fill();
-          ctx.strokeStyle = '#d97706';
-          ctx.lineWidth = 2.5;
-          ctx.strokeRect(r.rx + 50, r.ry + 70, r.rw - 100, r.rh - 106);
-
-          // 상단 벽면 골드 월계관 엠블럼 & 태극기/사기(국기)
-          const emX = MEETING_TABLE_CENTER.x;
-          const emY = r.ry + 38;
-          ctx.fillStyle = '#0f172a';
-          ctx.beginPath();
-          ctx.arc(emX, emY, 16, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.strokeStyle = '#fbbf24';
-          ctx.lineWidth = 2;
-          ctx.stroke();
-          // 월계관 아치
-          ctx.strokeStyle = '#fde047';
-          ctx.lineWidth = 1.8;
-          ctx.beginPath();
-          ctx.arc(emX, emY, 11, Math.PI * 0.2, Math.PI * 0.8);
-          ctx.stroke();
-          ctx.beginPath();
-          ctx.arc(emX, emY, 11, Math.PI * 1.2, Math.PI * 1.8);
-          ctx.stroke();
-          ctx.fillStyle = '#fbbf24';
-          ctx.font = 'bold 9px sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText('VIP', emX, emY + 3);
-
-          // 좌·우 의전 국기/사기 스탠드
-          const drawFlag = (fx: number, fy: number, flagColor: string) => {
-            ctx.fillStyle = '#fbbf24';
-            ctx.fillRect(fx - 4, fy + 16, 8, 3);
-            ctx.strokeStyle = '#fde047';
-            ctx.lineWidth = 1.8;
+            // 전담팀 캐릭터가 자리를 비우고 이동 중일 때 배경 원화의 빈 의자 등받이를 깔끔하게 표현
+            r.desks.forEach((d) => {
+              const isAnyoneAtDesk = staffList.some(
+                (s) => Math.hypot(s.x - d.x, s.y - d.y) < 18
+              );
+              if (!isAnyoneAtDesk) {
+                ctx.save();
+                ctx.fillStyle = '#1e293b';
+                ctx.beginPath();
+                ctx.roundRect(d.x - 16, d.y - 29, 32, 28, 7);
+                ctx.fill();
+                ctx.strokeStyle = '#475569';
+                ctx.lineWidth = 1.4;
+                ctx.stroke();
+                ctx.fillStyle = '#334155';
+                ctx.beginPath();
+                ctx.roundRect(d.x - 12, d.y - 25, 24, 20, 5);
+                ctx.fill();
+                ctx.restore();
+              }
+            });
+          } else {
+            // 중앙 회의실 테이블 은은한 골드 스포트라이트 및 CEO 긴급 지시 파동
+            const tableGlow = ctx.createRadialGradient(
+              MEETING_TABLE_CENTER.x,
+              MEETING_TABLE_CENTER.y,
+              8,
+              MEETING_TABLE_CENTER.x,
+              MEETING_TABLE_CENTER.y,
+              88
+            );
+            tableGlow.addColorStop(0, 'rgba(251, 191, 36, 0.25)');
+            tableGlow.addColorStop(1, 'rgba(251, 191, 36, 0)');
+            ctx.fillStyle = tableGlow;
             ctx.beginPath();
-            ctx.moveTo(fx, fy + 16);
-            ctx.lineTo(fx, fy - 12);
-            ctx.stroke();
-            ctx.fillStyle = flagColor;
-            ctx.beginPath();
-            ctx.moveTo(fx, fy - 11);
-            ctx.lineTo(fx + 16, fy - 6);
-            ctx.lineTo(fx, fy);
-            ctx.closePath();
+            ctx.arc(MEETING_TABLE_CENTER.x, MEETING_TABLE_CENTER.y, 88, 0, Math.PI * 2);
             ctx.fill();
-          };
-          drawFlag(emX - 42, emY, '#3b82f6');
-          drawFlag(emX + 34, emY, '#10b981');
 
-          // 회의실 중앙 테이블 조명 글로우
-          const tableGlow = ctx.createRadialGradient(
-            MEETING_TABLE_CENTER.x,
-            MEETING_TABLE_CENTER.y,
-            8,
-            MEETING_TABLE_CENTER.x,
-            MEETING_TABLE_CENTER.y,
-            84
-          );
-          tableGlow.addColorStop(0, 'rgba(251, 191, 36, 0.38)');
-          tableGlow.addColorStop(1, 'rgba(251, 191, 36, 0)');
-          ctx.fillStyle = tableGlow;
-          ctx.beginPath();
-          ctx.arc(MEETING_TABLE_CENTER.x, MEETING_TABLE_CENTER.y, 84, 0, Math.PI * 2);
-          ctx.fill();
+            if (ceoWaveFlashRef.current > 0) {
+              const radius = 50 + ((120 - ceoWaveFlashRef.current) % 45) * 2.2;
+              ctx.strokeStyle = 'rgba(56, 189, 248, 0.78)';
+              ctx.lineWidth = 3;
+              ctx.beginPath();
+              ctx.arc(MEETING_SEATS.CEO.x, MEETING_SEATS.CEO.y, radius, 0, Math.PI * 2);
+              ctx.stroke();
+            }
+          }
+        });
+      } else {
+        // 2) 이미지 미로드 시 고밀도 프로시저럴 배경 폴백 유지
+        for (let y = 0; y < CH; y += 24) {
+          for (let x = 0; x < CW; x += 24) {
+            ctx.fillStyle = (Math.floor(x / 24) + Math.floor(y / 24)) % 2 === 0 ? '#334155' : '#293548';
+            ctx.fillRect(x, y, 24, 24);
+          }
+        }
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.65)';
+        ctx.fillRect(20, CORRIDOR_Y - 20, CW - 40, 40);
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.25)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(20, CORRIDOR_Y - 20, CW - 40, 40);
 
-          // 원형 테이블 주변 6개 임원용 가죽 의자
-          for (let ci = 0; ci < 6; ci++) {
-            const ang = (ci * Math.PI) / 3;
-            const chX = MEETING_TABLE_CENTER.x + Math.cos(ang) * 58;
-            const chY = MEETING_TABLE_CENTER.y + Math.sin(ang) * 52;
-            ctx.fillStyle = '#1e293b';
+        drawLushPotPlant(ctx, 375, CORRIDOR_Y - 12, f, 1.0);
+        drawLushPotPlant(ctx, 745, CORRIDOR_Y - 12, f, 1.0);
+        drawLushPotPlant(ctx, 34, CORRIDOR_Y - 12, f, 0.9);
+        drawLushPotPlant(ctx, 1086, CORRIDOR_Y - 12, f, 0.9);
+
+        (Object.entries(ROOMS) as Array<[DeptRoomKey, typeof ROOMS.HR_ROOM]>).forEach(([rKey, r]) => {
+          const isRoomActive = staffList.some((s) => s.roomKey === rKey && s.isSelectedTeam && rKey !== 'MEETING_ROOM');
+          drawRoomFloor(ctx, r.rx, r.ry, r.rw, r.rh, r.floorType, r.badgeColor, isRoomActive, f);
+
+          if (r.ry < 100 && rKey !== 'QA_ROOM') {
+            drawWindowAndSunbeam(ctx, r.rx + 145, r.ry + 2, f);
+            drawWindowAndSunbeam(ctx, r.rx + 230, r.ry + 2, f);
+          }
+
+          drawMetalMoldingFrame(ctx, r.rx, r.ry, r.rw, r.rh, r.badgeColor, isRoomActive, r.doorX, r.doorY);
+
+          if (rKey !== 'MEETING_ROOM') {
+            const isShelfGlowing =
+              isRoomActive &&
+              (archiveHitFlashRef.current > 0 ||
+                staffList.some((s) => s.roomKey === rKey && Math.hypot(s.x - r.shelf.x, s.y - r.shelf.y) < 35));
+            drawBookshelf(ctx, r.shelf.x, r.shelf.y, isShelfGlowing, f, false);
+            drawBookshelf(ctx, r.shelf.x + 88, r.shelf.y, false, f, false);
+            drawOfficeProps(ctx, r.rx, r.ry, r.rw, r.rh, rKey, f);
+          } else {
+            ctx.fillStyle = '#78350f';
             ctx.beginPath();
-            ctx.arc(chX, chY, 10, 0, Math.PI * 2);
+            ctx.roundRect(r.rx + 42, r.ry + 62, r.rw - 84, r.rh - 90, 8);
+            ctx.fill();
+            ctx.fillStyle = '#fef3c7';
+            ctx.beginPath();
+            ctx.roundRect(r.rx + 46, r.ry + 66, r.rw - 92, r.rh - 98, 6);
+            ctx.fill();
+            ctx.strokeStyle = '#d97706';
+            ctx.lineWidth = 2.5;
+            ctx.strokeRect(r.rx + 50, r.ry + 70, r.rw - 100, r.rh - 106);
+
+            const emX = MEETING_TABLE_CENTER.x;
+            const emY = r.ry + 38;
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.arc(emX, emY, 16, 0, Math.PI * 2);
             ctx.fill();
             ctx.strokeStyle = '#fbbf24';
-            ctx.lineWidth = 1.5;
+            ctx.lineWidth = 2;
             ctx.stroke();
-          }
 
-          // 원형 회의 테이블 본체 + 골드 엠블럼 링
-          ctx.fillStyle = 'rgba(0,0,0,0.4)';
-          ctx.beginPath();
-          ctx.arc(MEETING_TABLE_CENTER.x, MEETING_TABLE_CENTER.y + 5, 50, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillStyle = '#78350f';
-          ctx.beginPath();
-          ctx.arc(MEETING_TABLE_CENTER.x, MEETING_TABLE_CENTER.y, 49, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillStyle = '#b45309';
-          ctx.beginPath();
-          ctx.arc(MEETING_TABLE_CENTER.x, MEETING_TABLE_CENTER.y, 41, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.strokeStyle = '#fde047';
-          ctx.lineWidth = 1.5;
-          ctx.beginPath();
-          ctx.arc(MEETING_TABLE_CENTER.x, MEETING_TABLE_CENTER.y, 26, 0, Math.PI * 2);
-          ctx.stroke();
-
-          if (ceoWaveFlashRef.current > 0) {
-            const radius = 50 + ((120 - ceoWaveFlashRef.current) % 45) * 2.2;
-            ctx.strokeStyle = 'rgba(56, 189, 248, 0.75)';
-            ctx.lineWidth = 3;
+            const tableGlow = ctx.createRadialGradient(
+              MEETING_TABLE_CENTER.x,
+              MEETING_TABLE_CENTER.y,
+              8,
+              MEETING_TABLE_CENTER.x,
+              MEETING_TABLE_CENTER.y,
+              84
+            );
+            tableGlow.addColorStop(0, 'rgba(251, 191, 36, 0.38)');
+            tableGlow.addColorStop(1, 'rgba(251, 191, 36, 0)');
+            ctx.fillStyle = tableGlow;
             ctx.beginPath();
-            ctx.arc(MEETING_SEATS.CEO.x, MEETING_SEATS.CEO.y, radius, 0, Math.PI * 2);
+            ctx.arc(MEETING_TABLE_CENTER.x, MEETING_TABLE_CENTER.y, 84, 0, Math.PI * 2);
+            ctx.fill();
+
+            for (let ci = 0; ci < 6; ci++) {
+              const ang = (ci * Math.PI) / 3;
+              const chX = MEETING_TABLE_CENTER.x + Math.cos(ang) * 76;
+              const chY = MEETING_TABLE_CENTER.y + Math.sin(ang) * 44;
+              ctx.fillStyle = '#1e293b';
+              ctx.beginPath();
+              ctx.arc(chX, chY, 10, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.strokeStyle = '#fbbf24';
+              ctx.lineWidth = 1.5;
+              ctx.stroke();
+            }
+
+            ctx.fillStyle = 'rgba(0,0,0,0.4)';
+            ctx.beginPath();
+            ctx.ellipse(MEETING_TABLE_CENTER.x, MEETING_TABLE_CENTER.y + 5, 68, 38, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#78350f';
+            ctx.beginPath();
+            ctx.ellipse(MEETING_TABLE_CENTER.x, MEETING_TABLE_CENTER.y, 66, 36, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#b45309';
+            ctx.beginPath();
+            ctx.ellipse(MEETING_TABLE_CENTER.x, MEETING_TABLE_CENTER.y, 56, 28, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#fde047';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.ellipse(MEETING_TABLE_CENTER.x, MEETING_TABLE_CENTER.y, 38, 18, 0, 0, Math.PI * 2);
             ctx.stroke();
+
+            if (ceoWaveFlashRef.current > 0) {
+              const radius = 50 + ((120 - ceoWaveFlashRef.current) % 45) * 2.2;
+              ctx.strokeStyle = 'rgba(56, 189, 248, 0.75)';
+              ctx.lineWidth = 3;
+              ctx.beginPath();
+              ctx.arc(MEETING_SEATS.CEO.x, MEETING_SEATS.CEO.y, radius, 0, Math.PI * 2);
+              ctx.stroke();
+            }
           }
-        }
-      });
+        });
+      }
 
       const walkingMap: Record<string, boolean> = {};
       const workingDeskMap: Record<string, boolean> = {};
@@ -2042,21 +2245,23 @@ export default function PixelRpgOffice({
           const busy = staffList.some(
             (s) => s.isSelectedTeam && !walkingMap[s.id] && Math.hypot(s.x - d.x, s.y - d.y) < 26
           );
-          drawDesk(ctx, d.x, d.y, busy, isSelectedRoom, f);
+          drawDesk(ctx, d.x, d.y, busy, isSelectedRoom, f, bgLoaded);
         });
 
-        // 알약형/메탈 부서 명패 배지
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.94)';
-        ctx.beginPath();
-        ctx.roundRect(r.rx + 10, r.ry + 8, 134, 22, 6);
-        ctx.fill();
-        ctx.strokeStyle = r.badgeColor;
-        ctx.lineWidth = 1.6;
-        ctx.stroke();
-        ctx.fillStyle = '#f8fafc';
-        ctx.font = 'bold 10.5px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(r.title, r.rx + 77, r.ry + 23);
+        // 폴백 모드일 때만 부서 명패 배지 드로잉 (office_bg.png 로드 시에는 원화 상단 간판 그대로 활용)
+        if (!bgLoaded) {
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.94)';
+          ctx.beginPath();
+          ctx.roundRect(r.rx + 10, r.ry + 8, 134, 22, 6);
+          ctx.fill();
+          ctx.strokeStyle = r.badgeColor;
+          ctx.lineWidth = 1.6;
+          ctx.stroke();
+          ctx.fillStyle = '#f8fafc';
+          ctx.font = 'bold 10.5px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(r.title, r.rx + 77, r.ry + 23);
+        }
       });
 
       particlesRef.current = particlesRef.current.filter((pt) => pt.life > 0);
@@ -2090,7 +2295,7 @@ export default function PixelRpgOffice({
         ctx.scale(bannerScale, bannerScale);
         ctx.translate(-tx, -ty);
 
-        const docGlow = ctx.createRadialGradient(tx, MEETING_TABLE_CENTER.y, 4, tx, MEETING_TABLE_CENTER.y, 42);
+        const docGlow = ctx.createRadialGradient(tx, MEETING_TABLE_CENTER.y, 4, tx, MEETING_TABLE_CENTER.y, 44);
         if (f % 30 < 15) {
           docGlow.addColorStop(0, 'rgba(250, 204, 21, 0.72)');
           docGlow.addColorStop(1, 'rgba(250, 204, 21, 0)');
@@ -2100,7 +2305,7 @@ export default function PixelRpgOffice({
         }
         ctx.fillStyle = docGlow;
         ctx.beginPath();
-        ctx.arc(tx, MEETING_TABLE_CENTER.y, 42, 0, Math.PI * 2);
+        ctx.arc(tx, MEETING_TABLE_CENTER.y, 44, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.fillStyle = '#fef08a';
