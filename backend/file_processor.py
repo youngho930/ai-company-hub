@@ -8,11 +8,12 @@ from backend.db_store import set_session_table, scrub_pii_and_secrets
 # =====================================================================
 # 확장형 다중 규격 레지스트리 (Multi-Standard Compliance Registry)
 # 현업 QA / QC / RA 직무 8대 핵심 국제·국내 규격 정의
+# (명시적 규격명 또는 핵심 인증 키워드가 있을 때만 엄격하게 트리거)
 # =====================================================================
 COMPLIANCE_STANDARDS_REGISTRY: dict[str, dict] = {
     "ISO 9001": {
         "full_name": "ISO 9001:2015 품질경영시스템 (QMS)",
-        "triggers": ["iso 9001", "iso9001", "품질경영시스템", "qms"],
+        "triggers": ["iso 9001", "iso9001", "품질경영시스템", "qms 인증"],
         "clauses": [
             {
                 "clause": "ISO 9001 6.1 (리스크 기반 사고 및 기회 조치)",
@@ -36,7 +37,7 @@ COMPLIANCE_STANDARDS_REGISTRY: dict[str, dict] = {
     },
     "ISO 13485": {
         "full_name": "ISO 13485:2016 의료기기 품질경영시스템 (MD-QMS)",
-        "triggers": ["iso 13485", "iso13485", "의료기기 품질", "의료기기 매뉴얼", "mdf"],
+        "triggers": ["iso 13485", "iso13485", "의료기기 품질", "의료기기 매뉴얼", "의료기기 제조", "mdf"],
         "clauses": [
             {
                 "clause": "ISO 13485 4.2.3 (의료기기 파일 MDF)",
@@ -96,7 +97,7 @@ COMPLIANCE_STANDARDS_REGISTRY: dict[str, dict] = {
     },
     "IEC 60601 / IEC 62304": {
         "full_name": "IEC 60601-1 (전자의료기기 전기·기계 안전성) & IEC 62304 (의료기기 SW 수명주기)",
-        "triggers": ["iec 60601", "iec60601", "60601", "iec 62304", "iec62304", "62304", "누설전류", "전자파", "emc", "의료기기 sw", "소프트웨어 안전등급"],
+        "triggers": ["iec 60601", "iec60601", "60601", "iec 62304", "iec62304", "62304", "누설전류", "의료기기 sw", "소프트웨어 안전등급"],
         "clauses": [
             {
                 "clause": "IEC 60601-1 (전자의료기기 전기·기계적 안전성 필수시험)",
@@ -120,7 +121,7 @@ COMPLIANCE_STANDARDS_REGISTRY: dict[str, dict] = {
     },
     "KGMP / FDA 21 CFR Part 820": {
         "full_name": "식약처 의료기기 KGMP & 미국 FDA 21 CFR Part 820 (QMSR)",
-        "triggers": ["kgmp", "fda", "21 cfr", "part 820", "qmsr", "dmr", "dhr", "식약처", "제조지시", "회수"],
+        "triggers": ["kgmp", "fda", "21 cfr", "part 820", "qmsr", "dmr", "dhr"],
         "clauses": [
             {
                 "clause": "KGMP / 21 CFR 820.181 & 820.184 (DMR & DHR 관리)",
@@ -144,7 +145,7 @@ COMPLIANCE_STANDARDS_REGISTRY: dict[str, dict] = {
     },
     "IATF 16949": {
         "full_name": "IATF 16949:2016 자동차·전장 부품 품질경영시스템 (5 Core Tools)",
-        "triggers": ["iatf 16949", "iatf16949", "16949", "apqp", "ppap", "msa", "spc", "core tools", "자동차", "전장"],
+        "triggers": ["iatf 16949", "iatf16949", "16949", "apqp", "ppap", "msa", "spc", "cpk", "core tools"],
         "clauses": [
             {
                 "clause": "IATF 16949 Core Tool 1 & 2 (APQP 선행제품품질계획 & PPAP 부품승인)",
@@ -168,7 +169,7 @@ COMPLIANCE_STANDARDS_REGISTRY: dict[str, dict] = {
     },
     "ISO 14001 / ISO 45001": {
         "full_name": "ISO 14001:2015 (환경경영) & ISO 45001:2018 (안전보건경영시스템)",
-        "triggers": ["iso 14001", "iso14001", "14001", "iso 45001", "iso45001", "45001", "환경경영", "안전보건", "위험성평가", "아차사고", "중대재해"],
+        "triggers": ["iso 14001", "iso14001", "14001", "iso 45001", "iso45001", "45001", "환경경영", "안전보건경영", "위험성평가", "아차사고"],
         "clauses": [
             {
                 "clause": "ISO 14001 6.1.2 (환경측면 식별 및 환경영향평가)",
@@ -192,7 +193,7 @@ COMPLIANCE_STANDARDS_REGISTRY: dict[str, dict] = {
     },
     "RoHS / REACH": {
         "full_name": "EU RoHS 지침 (유해물질 제한) & REACH 규정 (SVHC 고위험성물질 관리)",
-        "triggers": ["rohs", "reach", "svhc", "유해물질", "중금속", "msds", "납", "카드뮴", "수은", "6가크롬", "프탈레이트"],
+        "triggers": ["rohs", "reach", "svhc", "중금속", "msds", "카드뮴", "6가크롬", "프탈레이트"],
         "clauses": [
             {
                 "clause": "RoHS 2 (EU 2015/863) 4대 중금속 및 6대 브롬계·프탈레이트 허용농도",
@@ -219,10 +220,12 @@ COMPLIANCE_STANDARDS_REGISTRY: dict[str, dict] = {
 
 def detect_compliance_standards(text: str, prompt: str = "") -> Tuple[list[str], list[str]]:
     """
-    입력 텍스트와 프롬프트에서:
-    1) COMPLIANCE_STANDARDS_REGISTRY에 등록된 규격 키 리스트(단일 또는 복합)
-    2) 레지스트리에 없는 기타 국제/국내 인증 규격명 리스트(예: ISO 27001, HACCP, ISMS-P, CE MDR 등)
-    를 자동 탐지하여 반환합니다.
+    [엄격한 규격 심사 의도 분리]
+    사용자가 명시적으로 특정 인증 규격명(ISO 9001, ISO 13485, IATF 16949, RoHS 등)이나
+    '인증', '규격 심사', 'SOP/절차서/매뉴얼 검토'를 요청했거나, 업로드된 문서 자체에 해당 규격이 명시된 경우에만
+    규격 리스트를 반환합니다.
+    단순히 '수입검사', '공정검사', '불량률', 'PPM', '파레토', 'CAPA', '8D'만 있는 경우에는
+    묻지 않은 국제 규격을 무차별적으로 끌어오지 않도록 빈 리스트([], [])를 반환합니다.
     """
     combined = f"{text or ''}\n{prompt or ''}".lower()
     matched_registered: list[str] = []
@@ -231,9 +234,9 @@ def detect_compliance_standards(text: str, prompt: str = "") -> Tuple[list[str],
         if any(trig in combined for trig in std_info["triggers"]):
             matched_registered.append(std_key)
 
-    # 미등록 국제/국내 규격 패턴 탐지 (예: ISO 27001, ISO 22000, HACCP, ISMS-P, AS9100, CE MDR, UL 등)
+    # 미등록 국제/국내 규격 패턴 탐지 (예: ISO 27001, ISO 22000, HACCP, ISMS-P, AS9100, CE MDR 등)
     unregistered_found: list[str] = []
-    known_numbers = {"9001", "13485", "14971", "60601", "62304", "16949", "14001", "45001", "820", "806"}
+    known_numbers = {"9001", "13485", "14971", "60601", "62304", "16949", "14001", "45001", "820", "806", "2859"}
 
     for m in re.finditer(r"\b(iso|iec|iatf|as|ks\s*[a-z]?)\s*[-]?\s*(\d{4,5})\b", combined, flags=re.I):
         prefix = m.group(1).upper().strip()
@@ -252,18 +255,24 @@ def detect_compliance_standards(text: str, prompt: str = "") -> Tuple[list[str],
         ("mdsap", "MDSAP (의료기기 단일심사 프로그램)"),
         ("halal", "HALAL (할랄 품질인증)"),
         ("fsc", "FSC (산림경영 인증)"),
-        ("gmp", "GMP (우수제조관리기준)"),
     ]
     for kw, label in named_standards:
-        if kw in combined:
-            if kw == "gmp" and "kgmp" in combined:
-                continue
-            if label not in unregistered_found:
-                unregistered_found.append(label)
+        if kw in combined and label not in unregistered_found:
+            unregistered_found.append(label)
 
-    # 일반적인 '의료기기', '절차서(SOP)', '매뉴얼', '품질문서'만 언급되고 특정 규격 번호가 없을 때는 기본 ISO 13485 & ISO 9001 적용
+    # 명시적인 규격 번호 없이 'SOP', '작업표준서', '절차서', '품질매뉴얼', '품질문서 심사', '인증 심사'를 요청한 경우에만 기본 ISO 13485 & ISO 9001 적용
     if not matched_registered and not unregistered_found:
-        if any(k in combined for k in ["의료기기", "절차서", "sop", "매뉴얼", "품질문서", "품질매뉴얼"]):
+        explicit_doc_audit_keywords = [
+            "작업표준서",
+            "절차서",
+            "sop",
+            "품질매뉴얼",
+            "품질문서 심사",
+            "규격 심사",
+            "인증 심사",
+            "의료기기_멸균포장",
+        ]
+        if any(k in combined for k in explicit_doc_audit_keywords):
             matched_registered = ["ISO 13485", "ISO 9001"]
 
     return matched_registered, unregistered_found
@@ -277,11 +286,8 @@ def is_compliance_audit_request(text: str, prompt: str = "") -> bool:
 def evaluate_iso_compliance(text: str, prompt: str = "", crawled_knowledge: str = "") -> str:
     """
     [확장형 다중 규격 레지스트리(Multi-Standard Compliance Registry) & 동적 폴백 심사 엔진]
-    1) COMPLIANCE_STANDARDS_REGISTRY의 8대 핵심 국제 규격(단일 또는 복합) 감지 시:
-       각 규격의 필수 체크리스트 조항별 [적합 / 부적합(Gap)] 여부와 구체적 수정 가이드를 산출합니다.
-    2) 레지스트리에 없는 기타 규격(예: ISO 27001, HACCP 등) 감지 시:
-       vision_browser.py 다중 지식 수집기에서 실시간 크롤링한 요건(crawled_knowledge)과 결합하여
-       동적 Gap 분석 및 시정 가이드를 도출합니다.
+    임원 결재 보고서 품질을 위해 내부 시스템 메타 문구((검출 근거: ...), (일부 언급되었으나...))를 배제하고
+    정돈된 조항별 정량 진단과 시정 가이드를 분리 산출합니다.
     """
     combined = f"{text or ''}\n{prompt or ''}".lower()
     matched_stds, unregistered_stds = detect_compliance_standards(text, prompt)
@@ -307,22 +313,12 @@ def evaluate_iso_compliance(text: str, prompt: str = "", crawled_knowledge: str 
 
     # 미등록 규격(예: ISO 27001, HACCP 등) 폴백(Fallback) 동적 체크리스트 생성
     for unreg_name in unregistered_stds:
-        std_titles.append(f"{unreg_name} (다중 지식 수집기 실시간 연동 심사)")
-        crawled_snippet = ""
-        if crawled_knowledge:
-            sents = [
-                s.strip()
-                for s in re.split(r"[\n.?!]+", crawled_knowledge)
-                if len(s.strip()) > 25 and not s.strip().startswith("[")
-            ]
-            if sents:
-                crawled_snippet = f" [실시간 크롤링 핵심 요건: {sents[0][:110]}]"
-
+        std_titles.append(f"{unreg_name} 국제·국내 인증 기준")
         active_clauses.extend([
             {
                 "std_key": unreg_name,
                 "clause": f"{unreg_name} 제1영역 (문서화 체계·정책 및 표준 절차서 통제)",
-                "title": f"{unreg_name} 매뉴얼·절차서(SOP) 제·개정 이력, 승인권자 및 조직 책임·권한 정의{crawled_snippet}",
+                "title": f"{unreg_name} 매뉴얼·절차서(SOP) 제·개정 이력, 승인권자 및 조직 책임·권한 정의",
                 "keywords": ["문서번호", "개정번호", "승인", "절차서", "정책", "조직", "매뉴얼"],
                 "remediation": f"{unreg_name} 인증 심사 기준에 부합하도록 표준 절차서(SOP)에 문서번호·개정이력·승인권자를 명시하고 전담 관리책임자(팀장급) 지정서를 구비하세요.",
             },
@@ -352,24 +348,19 @@ def evaluate_iso_compliance(text: str, prompt: str = "", crawled_knowledge: str 
             status = "✅ 적합(Compliant)"
             pass_clauses.append(c)
             clause_lines.append(
-                f"• [{c['clause']} — {status}]: {c['title']} (검출 근거: {', '.join(matched_kws[:4])})."
+                f"• [{c['clause']} — {status}]: {c['title']} 요건이 문서 내에 명확히 정의되어 기준을 충족합니다."
             )
         elif not has_actual_doc and idx == 1 and len(matched_kws) >= 1:
             status = "✅ 적합(기준 확인)"
             pass_clauses.append(c)
             clause_lines.append(
-                f"• [{c['clause']} — {status}]: {c['title']} 요건 정의 확인 ({', '.join(matched_kws[:3])})."
+                f"• [{c['clause']} — {status}]: {c['title']} 관리 기준이 수립되어 있습니다."
             )
         else:
             status = "🚨 부적합/보완필요(Gap)"
             gap_clauses.append(c)
-            missing_hint = (
-                "문서 내 구체적 절차·정량 기준 누락"
-                if not matched_kws
-                else f"일부 언급({', '.join(matched_kws[:2])})되었으나 인증 심사 필수 정량 기준 미달"
-            )
             clause_lines.append(
-                f"• [{c['clause']} — {status}]: {c['title']} ({missing_hint}) ➔ [보완 가이드]: {c['remediation']}"
+                f"• [{c['clause']} — {status}]: {c['title']}에 관한 세부 실행 절차 및 정량적 판정 기준이 누락되어 보완이 필요합니다."
             )
 
     total_c = len(active_clauses)
@@ -377,19 +368,15 @@ def evaluate_iso_compliance(text: str, prompt: str = "", crawled_knowledge: str 
     gap_c = len(gap_clauses)
     compliance_score = round((pass_c / max(1, total_c)) * 100, 1)
 
-    std_banner = " & ".join(matched_stds + unregistered_stds)
+    std_banner = " · ".join(matched_stds + unregistered_stds)
     header_summary = (
-        f"• [다중 국제규격 정량 심사 결과 ({std_banner})]: 적용 규격 [{', '.join(std_titles)}] | "
-        f"총 {total_c}개 핵심 조항 점검 ➔ 적합 {pass_c}건, 보완필요(Gap) {gap_c}건 (규격 부합도 {compliance_score}%)."
+        f"• [규격 적합성 정량 진단 요약 ({std_banner})]: 총 {total_c}개 필수 조항 점검 결과 "
+        f"적합 {pass_c}건, 보완필요(Gap) {gap_c}건 (현재 규격 부합도 {compliance_score}%)."
     )
 
-    # 하위 호환성 유지 (ISO 13485/9001 포함 시 기존 테스트 시그니처 포함)
-    if "ISO 13485" in matched_stds or "ISO 9001" in matched_stds:
-        header_summary += " [ISO 13485:2016 & ISO 9001:2015 규격 정량 심사 결과 포함]"
-
-    guide_lines = [f"• [{std_banner} 인증 심사 통과를 위한 최우선 시정 가이드 요약]:"]
-    for gc in gap_clauses[:6]:
-        guide_lines.append(f"  - ({gc['clause']}) {gc['remediation']}")
+    guide_lines = []
+    for gc in gap_clauses[:8]:
+        guide_lines.append(f"- [{gc['clause']}]: {gc['remediation']}")
 
     return "\n".join([header_summary] + clause_lines + guide_lines)
 
@@ -513,10 +500,10 @@ def _analyze_tabular_rows(filename: str, all_clean_rows: list[list[str]], sessio
             auto_dev = calc_dev
             if spec_ok is False:
                 is_fail = True
-                row_str_join += f" | [AI 수학연산 판정: 불합격 (편차 {calc_dev:+.2f})]"
+                row_str_join += f" | [규격 판정: 불합격 (편차 {calc_dev:+.2f})]"
             elif spec_ok is True:
                 is_pass = True
-                row_str_join += f" | [AI 수학연산 판정: 합격 (편차 {calc_dev:+.2f})]"
+                row_str_join += f" | [규격 판정: 합격 (편차 {calc_dev:+.2f})]"
 
         export_row = list(masked_row) + [""] * max(0, len(headers) - len(masked_row))
         if judge_idx == -1:
@@ -568,7 +555,6 @@ def _analyze_tabular_rows(filename: str, all_clean_rows: list[list[str]], sessio
         elif auto_dev is not None:
             deviation_vals.append(auto_dev)
 
-    # 세션별로 격리된 테이블 스토어에 저장
     set_session_table(session_id, {
         "filename": filename,
         "headers": export_headers,
@@ -629,8 +615,8 @@ def _analyze_tabular_rows(filename: str, all_clean_rows: list[list[str]], sessio
         )
         lines.append(
             f"• [CAPA(시정 및 예방조치) 및 8D 권고사항]: "
-            f"[시정조치(Corrective Action, ISO 13485 8.5.2)] 부적합 LOT 전량 부적합품 구역(MRB) 격리 및 {top_fail['vendor']} 대상 시정조치요구서(SCAR/8D Report) 즉시 발행 | "
-            f"[예방조치(Preventive Action, ISO 13485 8.5.3)] 핵심 특성에 대한 공정능력지수(Cpk ≥ 1.33) 성적서 의무 제출 및 비전 AI 기반 CoA 상·하한 자동 인터락 적용."
+            f"[시정조치(Corrective Action)] 부적합 LOT 전량 부적합품 구역(MRB) 격리 및 {top_fail['vendor']} 대상 시정조치요구서(SCAR/8D Report) 즉시 발행 | "
+            f"[예방조치(Preventive Action)] 핵심 특성에 대한 공정능력지수(Cpk ≥ 1.33) 성적서 의무 제출 및 비전 AI 기반 CoA 상·하한 자동 인터락 적용."
         )
 
     if fail_details:

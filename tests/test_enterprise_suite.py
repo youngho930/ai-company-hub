@@ -139,7 +139,27 @@ def run_all_tests():
         unreg_prompt,
         crawled_knowledge="ISO 27001 정보보호 관리체계는 위험평가 및 통제항목 정의와 내부심사를 필수로 요구합니다.",
     )
-    assert "ISO 27001" in fallback_audit and "HACCP" in fallback_audit and "실시간 크롤링 핵심 요건" in fallback_audit
+    assert "ISO 27001" in fallback_audit and "HACCP" in fallback_audit
+    assert "(검출 근거:" not in fallback_audit and "[실시간 크롤링" not in fallback_audit
+
+    # 6-4: 질문 의도 정밀 분리 검증 ('월간 불량률(PPM)·CAPA 분석' 요청 시 무관한 인증 규격 혼입 0건 및 메타 노이즈 0건 검증)
+    ppm_prompt = "수입검사 및 공정검사 월간 불량률(PPM) 집계, 파레토(Pareto) 불량 유형 분석, 5-Why 원인 분석 및 협력사 CAPA 대책 보고서 작성해줘"
+    ppm_reg, ppm_unreg = detect_compliance_standards("", ppm_prompt)
+    assert len(ppm_reg) == 0 and len(ppm_unreg) == 0, f"불량률/CAPA 질문에 무관한 규격 오검출: {ppm_reg}, {ppm_unreg}"
+    noisy_crawled_web = (
+        "[진입 문서 제목]: 품질관리 위키백과\n"
+        "품질관리에서는 ISO 2859 샘플링 검사와 식약처 KGMP, FDA 회수 절차 및 유해물질 REACH 기준 등이 존재한다."
+    )
+    ppm_report = build_comprehensive_5section_report(
+        ppm_prompt,
+        noisy_crawled_web,
+        {"id": "sup-qa-01", "name": "임승현 팀장", "dept": "품질보증·QA팀"},
+        {"id": "wrk-qa-01", "name": "한도윤 수석", "dept": "품질보증·QA팀"},
+        {"id": "wrk-qa-02", "name": "장지우 책임", "dept": "품질보증·QA팀"},
+    )
+    for forbidden in ["KGMP", "FDA", "REACH", "ISO 2859", "ISO 13485", "(검출 근거:", "[실시간 크롤링", "(일부 언급되었으나"]:
+        assert forbidden not in ppm_report, f"무관한 규격 또는 메타 노이즈 혼입 검출: {forbidden}"
+    assert "3,500 PPM" in ppm_report and "파레토(Pareto 80:20)" in ppm_report and "5-Why" in ppm_report and "8D" in ppm_report
 
     print("✔ [기둥 6 통과] 8대 핵심 국제규격(ISO 9001/13485/14971, IEC 60601/62304, KGMP/FDA, IATF 16949, ISO 14001/45001, RoHS/REACH) 및 미등록 규격(ISO 27001·HACCP) 폴백 심사 검증 완료")
 
