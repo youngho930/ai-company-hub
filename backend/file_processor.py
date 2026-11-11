@@ -17,21 +17,24 @@ COMPLIANCE_STANDARDS_REGISTRY: dict[str, dict] = {
         "clauses": [
             {
                 "clause": "ISO 9001 6.1 (리스크 기반 사고 및 기회 조치)",
-                "title": "공정·품질 리스크 식별 및 사전 예방적 관리 계획",
+                "title": "공정·품질 리스크 식별 및 사전 예방적 관리 계획 누락",
                 "keywords": ["리스크", "위험", "기회", "예방", "영향", "사전"],
                 "remediation": "각 부서별 핵심 프로세스의 품질 리스크와 기회 요인을 식별하고, 리스크 등급에 따른 사전 완화 조치를 품질계획서에 문서화하세요.",
+                "template_snippet": "본 공정 수행 전 품질보증팀장은 연 1회 이상 공정 리스크 및 기회 평가표(FMEA 연계)를 작성하며, 중점 관리 항목은 초기 공정능력 Ppk >= 1.67, 양산 Cpk >= 1.33 이상을 유지하도록 사전 예방 관리한다.",
             },
             {
                 "clause": "ISO 9001 7.5 (문서화된 정보 및 공정 접근법)",
-                "title": "문서번호·개정번호·승인권자·개정이력 통제 및 프로세스 입력-출력 정의",
+                "title": "문서번호·개정번호·승인권자·개정이력 4대 통제 요소 및 프로세스 입출력 정의 미비",
                 "keywords": ["문서번호", "개정번호", "rev", "승인", "결재", "개정이력", "프로세스", "절차서", "매뉴얼"],
                 "remediation": "표준 문서 양식에 [문서번호 / 개정번호 / 승인권자 / 개정이력] 4대 필수 요소를 강제화하고, 공정별 입력(Input)-출력(Output) 및 KPI 지표를 정의하세요.",
+                "template_snippet": "본 절차서의 제·개정은 품질보증팀장의 검토 및 대표이사 승인을 득하여야 하며, 문서 상단에 [문서번호 / 개정번호(Rev.) / 시행일자 / 승인권자 서명]을 명시하고 구본은 '폐기(Obsolete)' 스탬프 날인 후 회수한다.",
             },
             {
-                "clause": "ISO 9001 8.7 / 10.2 (고객만족·부적합 통제 및 시정조치)",
-                "title": "부적합 산출물 격리 식별, 고객 불만 피드백 및 재발방지 시정조치",
+                "clause": "ISO 9001 8.7 / 10.2 (고객만족·부적합 통제 및 8D 시정조치)",
+                "title": "부적합 산출물 격리 식별, 고객 불만 피드백 및 8D Report 기반 재발방지 절차 누락",
                 "keywords": ["부적합", "격리", "고객만족", "불만", "시정조치", "재발방지", "원인분석", "capa"],
-                "remediation": "부적합품 발견 시 즉시 식별·격리(Hold)하는 절차를 명문화하고, 고객 불만 및 공정 부적합에 대한 근본원인 분석과 시정조치 유효성 평가를 기록하세요.",
+                "remediation": "부적합품 발견 시 즉시 식별·격리(Hold)하는 절차를 명문화하고, 고객 불만 및 공정 부적합에 대한 8D Report 단계별 액션과 시정조치 유효성 평가를 기록하세요.",
+                "template_snippet": "공정 및 출하검사 중 부적합 발생 시 즉시 적색 부적합 라벨을 부착하여 MRB(부적합품 격리구역)로 격리(D3 봉쇄조치)하고, 5-Why 근본원인 분석(D4) 및 시정·예방조치(D5~D7) 완료 후 3개월간 재발 여부를 유효성 검증한다.",
             },
         ],
     },
@@ -40,34 +43,39 @@ COMPLIANCE_STANDARDS_REGISTRY: dict[str, dict] = {
         "triggers": ["iso 13485", "iso13485", "의료기기 품질", "의료기기 매뉴얼", "의료기기 제조", "mdf"],
         "clauses": [
             {
-                "clause": "ISO 13485 4.2.3 (의료기기 파일 MDF)",
-                "title": "제품 기술문서·제조공정·측정 및 모니터링 스펙 정의",
+                "clause": "ISO 13485 4.2.3 (의료기기 파일 MDF & 식약처 기술문서 심사 연계)",
+                "title": "제품 기술문서(식약처 기술문서 심사 항목)·제조공정·측정 및 모니터링 스펙 정의 누락",
                 "keywords": ["mdf", "의료기기 파일", "기술문서", "제품사양", "도면", "제조공정", "모니터링", "작업표준", "규격"],
-                "remediation": "제품군별 기술문서(MDF) 인덱스를 신설하고 원부자재 BOM, 도면, 공정흐름도(PFC), 검사기준서(SIP)의 상호 참조 번호를 명시하세요.",
+                "remediation": "식약처 기술문서 심사(모양 및 구조·원재료·성능·시험규격)와 일치하는 제품군별 의료기기 파일(MDF) 인덱스를 신설하고 BOM, 도면, 공정흐름도(PFC), 검사기준서(SIP)의 상호 참조 번호를 명시하세요.",
+                "template_snippet": "품질보증책임자는 품목별 의료기기 파일(MDF) 및 식약처 기술문서 심사 허가증(원재료·성능·시험규격)을 최신본으로 유지하며, 설계·원재료 변경 시 식약처 기술문서 변경심사 완료 후 양산 공정(DMR)에 반영한다.",
             },
             {
-                "clause": "ISO 13485 4.2.4 / 4.2.5 (문서 및 기록 관리·보존기한)",
-                "title": "문서번호·개정번호·승인권자·개정이력 및 의료기기 수명주기 기록 보존",
+                "clause": "ISO 13485 4.2.4 / 4.2.5 (문서 및 기록 관리·법정 보존기한)",
+                "title": "문서번호·개정번호·승인권자·개정이력 및 의료기기 수명주기 기록 보존기한 누락",
                 "keywords": ["문서번호", "개정번호", "rev", "승인", "결재", "개정이력", "보존기한", "보관기간"],
-                "remediation": "표준 문서 헤더에 [문서번호 / 개정번호 / 승인권자 / 개정이력표]를 포함하고, 품질 기록의 보존기한을 '제품 유효기한 경과 후 최소 2년 이상'으로 명시하세요.",
+                "remediation": "표준 문서 헤더에 [문서번호 / 개정번호 / 승인권자 / 개정이력표]를 포함하고, 품질 기록의 보존기한을 '의료기기 수명주기 또는 제품 출하 후 최소 2년 이상'으로 명시하세요.",
+                "template_snippet": "모든 품질문서는 발행 전 승인권자의 적격성 검토·승인을 거치며, 제조이력서(DHR) 및 멸균·검사 기록은 당사 지정 의료기기 유효기한(수명주기) 경과 후 최소 2년 이상 위·변조 방지 상태로 보존한다.",
             },
             {
-                "clause": "ISO 13485 7.5.6 (생산 및 서비스 공정 밸리데이션)",
-                "title": "특수 공정 IQ(설치)·OQ(운전)·PQ(성능) 적격성 평가 및 재밸리데이션",
-                "keywords": ["밸리데이션", "validation", "iq", "oq", "pq", "적격성", "공정능력", "cpk", "재밸리데이션"],
-                "remediation": "결과를 전수 검증할 수 없는 특수 공정(세척·멸균·열밀봉·용접 등)에 대해 IQ/OQ/PQ 프로토콜 번호와 공정능력지수(Cpk ≥ 1.33) 관리 기준 및 정기 재밸리데이션 주기를 규정하세요.",
+                "clause": "ISO 13485 7.5.6 (공정 밸리데이션 & 멸균 밸리데이션 ISO 11135/11137 연계)",
+                "title": "특수 공정 IQ/OQ/PQ 적격성 평가, 멸균 밸리데이션(ISO 11135/11137) 및 공정능력(Cpk >= 1.33 / Ppk >= 1.67) 판정 기준 누락",
+                "keywords": ["밸리데이션", "validation", "iq", "oq", "pq", "적격성", "공정능력", "cpk", "재밸리데이션", "11135", "11137"],
+                "remediation": "결과를 전수 검증할 수 없는 특수 공정(EO 멸균 ISO 11135, 감마선 멸균 ISO 11137, 실링 ISO 11607)에 대해 IQ/OQ/PQ 프로토콜 번호와 공정능력지수(초기 Ppk >= 1.67, 양산 Cpk >= 1.33) 판정 기준 및 연 1회 정기 재밸리데이션 주기를 규정하세요.",
+                "template_snippet": "멸균(ISO 11135 EO가스 / ISO 11137 방사선) 및 파우치 열밀봉(실링) 특수 공정은 양산 전 IQ(설치)·OQ(운전)·PQ(성능) 적격성 평가를 완료해야 하며, 핵심 파라미터(온도·압력·밀봉강도)는 초기 Ppk >= 1.67, 양산 Cpk >= 1.33 이상을 유지하고 연 1회 정기 재밸리데이션을 수행한다.",
             },
             {
-                "clause": "ISO 13485 7.5.8 / 7.5.9 (식별 및 추적성·LOT 관리)",
-                "title": "원자재~완제품 LOT 추적성(Traceability) 및 UDI/부적합품 식별",
+                "clause": "ISO 13485 7.5.8 / 7.5.9 (식별·LOT 추적성 및 UDI 고유기기식별자 표시)",
+                "title": "원자재~완제품 LOT 양방향 추적성(Traceability) 및 UDI 고유기기식별자 표시·부적합품 격리 절차 누락",
                 "keywords": ["lot", "로트", "추적성", "식별", "udi", "바코드", "이력", "수입검사", "격리"],
-                "remediation": "원자재 입고 LOT 번호가 제조이력서(DHR/BPR) 및 완제품 출하 라벨(UDI)까지 1:1 양방향 추적되도록 LOT 부여 규칙과 부적합품 적색 라벨 격리 절차를 추가하세요.",
+                "remediation": "원자재 입고 LOT 번호가 제조이력서(DHR) 및 완제품 출하 라벨의 UDI 고유기기식별자(UDI-DI/UDI-PI 바코드)까지 1:1 양방향 추적되도록 LOT 부여 규칙과 부적합품 적색 라벨 격리 절차를 추가하세요.",
+                "template_snippet": "모든 원자재 및 반제품은 고유 LOT 번호로 식별하며, 완제품 포장 라벨에는 식약처 및 국제 표준에 따른 UDI 고유기기식별자(UDI-DI 품목식별자 + UDI-PI 제조단위·유효기한 바코드)를 표시하여 원자재 입고부터 최종 출하처까지 100% 양방향 추적성을 보장한다.",
             },
             {
-                "clause": "ISO 13485 8.5.2 / 8.5.3 (시정조치 및 예방조치 CAPA)",
-                "title": "5-Why 근본원인 분석, 시정조치 유효성 검증 및 재발방지",
+                "clause": "ISO 13485 8.5.2 / 8.5.3 (시정·예방조치 CAPA 및 8D Report 단계별 액션)",
+                "title": "5-Why 근본원인 규명, 8D Report 단계별 액션 및 CAPA 유효성 검증 기준 누락",
                 "keywords": ["capa", "시정조치", "예방조치", "5-why", "근본원인", "8d", "재발방지", "부적합", "car"],
-                "remediation": "단순 현상 수정(Correction)과 근본원인 제거(Corrective Action)를 구분하고, 불량 발생 시 [원인분석(5-Why) ➔ CAPA 수립 ➔ 3개월 후 유효성 검증 ➔ 수평전개] 8D 프로세스를 의무화하세요.",
+                "remediation": "단순 현상 수정(Correction)과 근본원인 제거(Corrective Action)를 구분하고, 불량 발생 시 [D3 긴급봉쇄 ➔ D4 5-Why 원인분석 ➔ D5 CAPA 수립 ➔ D6 3개월 유효성 검증 ➔ D7 수평전개] 8D Report 단계별 액션을 의무화하세요.",
+                "template_snippet": "공정 부적합 및 기준 이탈 발생 시 24시간 내 D3 긴급 봉쇄조치(MRB 격리)를 시행하고, 8D Report 절차에 따라 5-Why 근본원인 분석(D4), 시정·예방조치 실행(D5), 후속 3개 LOT 이상 공정능력(Cpk >= 1.33) 유효성 검증(D6) 및 표준 작업표준서 개정·수평전개(D7)를 수행한다.",
             },
         ],
     },
@@ -77,21 +85,24 @@ COMPLIANCE_STANDARDS_REGISTRY: dict[str, dict] = {
         "clauses": [
             {
                 "clause": "ISO 14971 5.2~5.5 (위해요인 식별 및 위험 산정 RPN)",
-                "title": "정상·고장 상태 위해요인(Hazard) 식별 및 심각도(S)×발생빈도(O) 위험 매트릭스 산정",
+                "title": "정상·고장 상태 위해요인(Hazard) 식별 및 심각도(S)×발생빈도(O) 위험 매트릭스 산정 누락",
                 "keywords": ["위해요인", "hazard", "심각도", "발생빈도", "rpn", "위험산정", "매트릭스"],
-                "remediation": "생물학적·전기적·기계적·사용오류 위해요인(Hazard)을 전수 도출하고, 심각도(S)와 발생가능성(P/O) 매트릭스를 통해 정량적 초기 위험도를 산정하세요.",
+                "remediation": "식약처 기술문서 심사 첨부자료 요건에 맞춰 생물학적·전기적·기계적·멸균실패·사용오류 위해요인(Hazard)을 전수 도출하고, 심각도(S 1~5등급)와 발생가능성(O 1~5등급) 매트릭스로 초기 위험도(RPN)를 산정하세요.",
+                "template_snippet": "당사 의료기기의 정상 및 단일고장 상태에서 발생 가능한 위해요인(생물학적 오염, 포장 파손, 방사선/EO 잔류물 등)을 식별하고, 위험관리계획서(RMP)의 심각도(S)×발생빈도(O) 5×5 매트릭스에 따라 RPN 점수를 정량 산정한다.",
             },
             {
-                "clause": "ISO 14971 7.1~7.4 (위험통제 조치 및 잔여위험 평가)",
-                "title": "설계 본질안전 ➔ 보호수단 ➔ 안전정보(라벨링) 3단계 위험통제 및 잔여위험 수용성 평가",
+                "clause": "ISO 14971 7.1~7.4 (위험통제 3단계 조치 및 잔여위험 평가)",
+                "title": "설계 본질안전 ➔ 방호수단 ➔ 안전정보(UDI·라벨링) 3단계 위험통제 및 잔여위험 수용성 평가 누락",
                 "keywords": ["위험통제", "본질안전", "잔여위험", "수용", "이득", "fmea", "완화"],
-                "remediation": "위험통제 우선순위(설계 변경 ➔ 방호 알람 ➔ 사용설명서 경고)를 적용한 뒤 통제 후 잔여위험(Residual Risk)의 수용 가능 여부와 위험/이득(Benefit-Risk) 분석을 문서화하세요.",
+                "remediation": "위험통제 우선순위(① 본질안전 설계 ➔ ② 제조공정·설비 방호 알람 ➔ ③ 사용설명서 및 UDI 라벨 경고)를 적용한 뒤 통제 후 개별·전체 잔여위험(Residual Risk) 수용성 평가와 위험/이득(Benefit-Risk) 분석을 문서화하세요.",
+                "template_snippet": "식별된 중·고위험 항목은 [1순위: 본질안전 설계 변경 ➔ 2순위: 공정 인터락 및 알람 설치 ➔ 3순위: 사용설명서(IFU) 및 UDI 라벨 경고 문구 기재] 순으로 통제하며, 통제 후 잔여위험이 수용 기준(ALARP) 이내임을 검증하여 위험관리보고서(RMR)에 기록한다.",
             },
             {
-                "clause": "ISO 14971 10 (생산 및 생산 후 정보 수집·FMEA 연계)",
-                "title": "시판 후 임상·불만 데이터 기반 위험관리파일(RMF) 및 공정 FMEA 주기적 갱신",
+                "clause": "ISO 14971 10 (생산 및 생산 후 정보 수집·FMEA 및 CAPA 연계)",
+                "title": "시판 후 임상·불만·공정능력(Cpk) 데이터 기반 위험관리파일(RMF) 및 P-FMEA 주기적 갱신 절차 누락",
                 "keywords": ["rmf", "위험관리파일", "시판후", "pms", "갱신", "fmea", "연계"],
-                "remediation": "생산 및 시판 후 피드백(불만, 부작용, 공정 불량)이 발생할 경우 위험관리파일(RMF)과 D-FMEA/P-FMEA를 연동 업데이트하는 환류 절차를 수립하세요.",
+                "remediation": "생산 공정능력(Cpk < 1.33 미달) 및 시판 후 감시(PMS, 고객 불만, 부작용) 데이터가 발생할 경우 위험관리파일(RMF)과 D-FMEA/P-FMEA, 8D CAPA를 연동 업데이트하는 환류 절차를 수립하세요.",
+                "template_snippet": "제조 공정검사 부적합, CAPA 발생 또는 시판 후 감시(PMS)에서 신규 위해요인이 확인될 경우, 15일 이내에 공정 FMEA(P-FMEA)와 위험관리파일(RMF)의 발생빈도 등급을 재산정하고 위험통제 유효성을 재검증한다.",
             },
         ],
     },
@@ -100,46 +111,52 @@ COMPLIANCE_STANDARDS_REGISTRY: dict[str, dict] = {
         "triggers": ["iec 60601", "iec60601", "60601", "iec 62304", "iec62304", "62304", "누설전류", "의료기기 sw", "소프트웨어 안전등급"],
         "clauses": [
             {
-                "clause": "IEC 60601-1 (전자의료기기 전기·기계적 안전성 필수시험)",
-                "title": "환자 누설전류·접지연속성·내전압(절연) 및 기계적 강도 안전 기준",
+                "clause": "IEC 60601-1 (전자의료기기 전기·기계적 안전성 및 식약처 기술문서 시험규격)",
+                "title": "환자 누설전류·접지연속성·내전압(2중 절연 MOPP/MOOP) 및 기계적 강도 안전 기준 누락",
                 "keywords": ["누설전류", "절연", "내전압", "접지", "전기안전", "기계적", "온도상승"],
-                "remediation": "장착부(Type B/BF/CF) 등급별 환자 누설전류 허용한도, 2중 절연(MOPP/MOOP) 내전압 시험 및 외장 기계적 충격 시험 기준치를 시험성적서에 명시하세요.",
+                "remediation": "식약처 기술문서 심사 시험규격에 부합하도록 장착부(Type B/BF/CF) 등급별 환자 누설전류 허용한도, 2중 절연(2 MOPP) 내전압 시험 및 외장 기계적 강도 시험 기준치를 명시하세요.",
+                "template_snippet": "전자의료기기 출하 전 전수 안전성 시험으로 접지연속성(0.1Ω 이하), 내전압 시험(1,500V~4,000V AC, 2 MOPP 절연 파괴 없을 것) 및 장착부(Type BF/CF) 환자 누설전류 허용치를 측정하여 제조이력서(DHR)에 기록한다.",
             },
             {
-                "clause": "IEC 60601-1-2 (전자파 적합성 EMC 시험)",
-                "title": "전자파 방사(EMI) 및 정전기·방사성 내성(EMS) 규격 검증",
+                "clause": "IEC 60601-1-2 (전자파 적합성 EMC 시험 및 필수성능 유지)",
+                "title": "전자파 방사(EMI) 및 정전기·서지 내성(EMS) 규격 검증 기준 누락",
                 "keywords": ["emc", "emi", "ems", "전자파", "정전기", "esd", "내성"],
-                "remediation": "IEC 60601-1-2 4판 이상 기준에 따른 전자파 장해(EMI) 및 정전기 방전(ESD)·서지 내성(EMS) 필수 시험 조건과 필수성능(Essential Performance) 유지 기준을 정의하세요.",
+                "remediation": "IEC 60601-1-2 4.1판 기준에 따른 전자파 장해(EMI) 및 정전기 방전(ESD ±8kV 접촉 / ±15kV 기중)·서지 내성(EMS) 필수 시험 조건과 필수성능(Essential Performance) 유지 기준을 정의하세요.",
+                "template_snippet": "본 기기는 IEC 60601-1-2 전자파 안전 규격에 따라 정전기 방전(ESD 접촉 ±8kV, 기중 ±15kV) 및 방사성 RF 전자기장 내성 시험 중에도 임상적 필수성능(Essential Performance)의 저하 또는 오작동이 없어야 한다.",
             },
             {
-                "clause": "IEC 62304 (의료기기 SW 안전 등급 Class A/B/C 및 수명주기)",
-                "title": "SW 안전 등급(Class A/B/C) 분류, 요구사항 추적성(SRS-SDS-Test) 및 SOUP 관리",
+                "clause": "IEC 62304 (의료기기 SW 안전 등급 Class A/B/C 및 수명주기 추적성)",
+                "title": "SW 안전 등급(Class A/B/C) 분류, 요구사항 추적성(SRS-SDS-Test) 및 SOUP 보안 관리 누락",
                 "keywords": ["class a", "class b", "class c", "안전등급", "srs", "추적성", "soup", "단위테스트", "수명주기"],
                 "remediation": "SW 고장 시 상해 심각도에 따라 안전 등급(Class A: 경미 / B: 비심각 / C: 사망·중상)을 분류하고, 요구사항(SRS)-아키텍처(SDS)-소스코드-단위/통합시험 간 양방향 추적성 매트릭스를 구축하세요.",
+                "template_snippet": "의료기기 소프트웨어는 IEC 62304에 의거 안전 등급(Class A/B/C)을 부여하며, 소프트웨어 요구사항 명세서(SRS)부터 상세설계(SDS), 단위 코드 검증 및 시스템 밸리데이션 시험결과서까지 1:1 양방향 추적성 매트릭스를 유지한다.",
             },
         ],
     },
     "KGMP / FDA 21 CFR Part 820": {
-        "full_name": "식약처 의료기기 KGMP & 미국 FDA 21 CFR Part 820 (QMSR)",
+        "full_name": "식약처 의료기기 KGMP (기술문서·UDI) & 미국 FDA 21 CFR Part 820 (QMSR)",
         "triggers": ["kgmp", "fda", "21 cfr", "part 820", "qmsr", "dmr", "dhr"],
         "clauses": [
             {
-                "clause": "KGMP / 21 CFR 820.181 & 820.184 (DMR & DHR 관리)",
-                "title": "제품표준서(DMR) 및 로트별 제조이력서(DHR / 제조지시 및 기록서) 완결성",
+                "clause": "KGMP / 21 CFR 820.181 & 820.184 (식약처 기술문서 연계 DMR·DHR 및 UDI 관리)",
+                "title": "식약처 기술문서 심사 사양과 일치하는 제품표준서(DMR)·제조이력서(DHR) 및 UDI 고유기기식별자 기록 누락",
                 "keywords": ["dmr", "dhr", "제품표준서", "제조이력", "제조지시", "배치기록", "작업일지", "수율"],
-                "remediation": "제품표준서(DMR)와 일치하는 로트별 제조이력서(DHR) 양식을 수립하고, 투입 원자재 LOT·작업자·주요 공정 파라미터·최종 출하승인 서명이 누락 없이 기록되도록 통제하세요.",
+                "remediation": "식약처 기술문서 심사 허가 사양과 일치하는 제품표준서(DMR) 및 로트별 제조이력서(DHR) 양식을 수립하고, 투입 원자재 LOT·멸균 밸리데이션(ISO 11135/11137) 파라미터·UDI 고유기기식별자 라벨 검수 서명이 누락 없이 기록되도록 통제하세요.",
+                "template_snippet": "제조부서는 식약처 기술문서 심사 허가 사양이 반영된 제품표준서(DMR)에 의거 로트별 제조지시 및 기록서(DHR)를 발행하며, 공정 완료 시 작업자·품질검수자 이중 서명과 UDI 고유기기식별자 바코드 인쇄 적격 견본을 DHR에 첨부한다.",
             },
             {
-                "clause": "KGMP / 21 CFR 820.198 (고객 불만처리 및 부작용 보고 MDR)",
-                "title": "고객 불만 접수·조사·식약처/FDA 이상사례(MDR) 보고 기한 준수",
+                "clause": "KGMP / 21 CFR 820.198 (고객 불만처리·이상사례 MDR 보고 및 8D CAPA)",
+                "title": "고객 불만 접수·8D 조사 및 식약처/FDA 이상사례(MDR) 법정 보고 기한 준수 절차 누락",
                 "keywords": ["불만", "부작용", "이상사례", "mdr", "보고", "식약처", "fda", "피드백"],
-                "remediation": "모든 고객 불만을 전담 품질부서에서 심사하고, 사망·중대한 부작용 관련 시 법정 기한 내에 식약처 및 FDA(MDR)에 보고하는 비상 에스컬레이션 절차를 명시하세요.",
+                "remediation": "모든 고객 불만을 품질보증부서에서 8D Report 절차로 조사하고, 사망·중대한 부작용 관련 시 법정 기한 내에 식약처(의료기기 이상사례 보고) 및 미국 FDA(eMDR)에 보고하는 비상 절차를 명시하세요.",
+                "template_snippet": "고객 불만 및 부작용 접수 시 품질보증팀은 즉시 8D Report 기반 원인 조사에 착수하며, 사망 또는 중대한 건강 피해가 우려되는 이상사례(MDR)는 인지 후 법정 기한 내에 식약처 및 FDA에 즉시 보고한다.",
             },
             {
-                "clause": "KGMP / 21 CFR Part 806 (제품 회수 Recall 및 자진 시정 절차)",
-                "title": "부적합 출하 제품 추적·회수(Recall) 등급 분류 및 모의 회수 훈련",
+                "clause": "KGMP / 21 CFR Part 806 (제품 회수 Recall 및 UDI 유통망 추적)",
+                "title": "부적합 출하 제품 UDI 추적·회수(Recall) 등급 분류 및 모의 회수 훈련 절차 누락",
                 "keywords": ["회수", "recall", "리콜", "출하정지", "추적", "폐기", "통보"],
-                "remediation": "위해도에 따른 회수 등급(1·2·3등급) 분류 기준, 유통망 거래처 긴급 통보 양식, 회수품 격리·폐기 및 연 1회 이상 모의 회수(Mock Recall) 훈련 절차를 규정하세요.",
+                "remediation": "위해도에 따른 회수 등급(1·2·3등급) 분류 기준, UDI 고유기기식별자 기반 유통망 거래처 긴급 통보 양식, 회수품 MRB 격리·폐기 및 연 1회 이상 모의 회수(Mock Recall) 훈련 절차를 규정하세요.",
+                "template_snippet": "중대한 품질 부적합 출하 인지 시 즉시 회수대책위원회를 소집하여 UDI 고유기기식별자 및 LOT 추적 기록으로 납품 의료기관을 특정하고, 식약처 회수계획서 보고 및 전량 회수·격리(연 1회 모의 회수 훈련 의무화)를 실시한다.",
             },
         ],
     },
@@ -149,21 +166,24 @@ COMPLIANCE_STANDARDS_REGISTRY: dict[str, dict] = {
         "clauses": [
             {
                 "clause": "IATF 16949 Core Tool 1 & 2 (APQP 선행제품품질계획 & PPAP 부품승인)",
-                "title": "단계별 게이트 리뷰(APQP) 및 양산 부품 승인 제출물 18종(PPAP PSW) 검증",
+                "title": "단계별 게이트 리뷰(APQP) 및 양산 부품 승인 제출물 18종(PPAP PSW) 검증 절차 누락",
                 "keywords": ["apqp", "ppap", "psw", "선행품질", "부품승인", "control plan", "관리계획서", "초도품"],
-                "remediation": "개발 5단계 APQP 일정과 연동하여 공정흐름도(PFD)-PFMEA-관리계획서(Control Plan) 3대 문서의 일관성을 확보하고, 양산 전 PPAP 승인원(PSW) 및 초기공정연구 결과를 제출하세요.",
+                "remediation": "개발 5단계 APQP 일정과 연동하여 공정흐름도(PFD)-PFMEA-관리계획서(Control Plan) 3대 문서의 일관성을 확보하고, 양산 전 PPAP 18종 승인원(PSW) 및 초기공정능력(Ppk >= 1.67) 검증 결과를 제출하세요.",
+                "template_snippet": "신규 전장부품 개발 시 APQP 5단계 게이트 리뷰를 통해 공정흐름도(PFD)-공정FMEA-관리계획서(Control Plan)의 특별특성 번호를 1:1 동기화하며, 양산 초도품 출하 전 PPAP Level 3 기준 18종 서류 및 PSW(부품제출보증서) 승인을 완료한다.",
             },
             {
                 "clause": "IATF 16949 Core Tool 3 & 4 (AIAG-VDA FMEA & MSA 측정시스템분석)",
-                "title": "설계·공정 FMEA 조치우선순위(AP) 관리 및 게이지 R&R(%GRR) 적격성 평가",
+                "title": "설계·공정 FMEA 조치우선순위(AP) 관리 및 게이지 R&R(%GRR < 10%) 적격성 평가 누락",
                 "keywords": ["fmea", "pfmea", "msa", "게이지", "grr", "r&r", "측정시스템", "검교정", "편향"],
-                "remediation": "관리계획서에 명시된 모든 측정기기에 대해 게이지 R&R(%GRR < 10%: 우수, 10~30%: 조건부 수용, >30%: 부적합)을 수행하고 AIAG-VDA FMEA 기준 고위험(AP: High) 항목의 개선대책을 수립하세요.",
+                "remediation": "관리계획서에 명시된 모든 측정기기에 대해 게이지 R&R(%GRR < 10%: 적격, 10~30%: 조건부 수용, >30%: 부적합) 및 편향·선형성 분석을 수행하고 AIAG-VDA FMEA 고위험(AP: High) 항목의 8D 개선대책을 수립하세요.",
+                "template_snippet": "관리계획서(Control Plan)에 등록된 모든 검사 계측기는 양산 적용 전 MSA 게이지 R&R을 실시하여 %GRR < 10% 및 구분범주수(ndc >= 5) 적격 판정을 확보해야 하며, 부적합 계측기는 즉시 현장 사용을 중단하고 검교정을 실시한다.",
             },
             {
-                "clause": "IATF 16949 Core Tool 5 (SPC 통계적 공정관리 & 공정능력 Cpk)",
-                "title": "특별특성(CC/SC) 관리도(Xbar-R) 실시간 모니터링 및 공정능력지수(Ppk ≥ 1.67, Cpk ≥ 1.33)",
+                "clause": "IATF 16949 Core Tool 5 (SPC 통계적 공정관리 & Cpk >= 1.33 / Ppk >= 1.67 판정 기준)",
+                "title": "특별특성(CC/SC) 관리도(Xbar-R) 실시간 모니터링, 공정능력지수(Ppk >= 1.67, Cpk >= 1.33) 및 8D Report 액션 누락",
                 "keywords": ["spc", "cpk", "ppk", "관리도", "xbar", "통계적", "특별특성", "산포"],
-                "remediation": "핵심 특별특성(Critical/Significant Characteristics)에 대해 초기 공정능력 Ppk ≥ 1.67, 양산 유지 공정능력 Cpk ≥ 1.33 기준을 설정하고 관리한계선(UCL/LCL) 이탈 시 이상원인 조치(OCAP)를 가동하세요.",
+                "remediation": "핵심 특별특성(CC/SC)에 대해 초기 공정능력 Ppk >= 1.67, 양산 유지 공정능력 Cpk >= 1.33 판정 기준을 설정하고, 미달 또는 관리한계선(UCL/LCL) 이탈 시 즉시 8D Report 단계별 액션(D3 전수선별 ➔ D4 5-Why ➔ D5~D7 CAPA)을 가동하세요.",
+                "template_snippet": "특별특성(CC/SC) 공정은 Xbar-R 관리도를 통해 상시 모니터링하며, 초도 양산 시 Ppk >= 1.67, 정규 양산 시 Cpk >= 1.33 이상을 유지해야 한다. Cpk < 1.33 미달 시 즉시 100% 전수선별(Containment)로 전환하고 8D Report 시정조치를 발동한다.",
             },
         ],
     },
@@ -173,21 +193,24 @@ COMPLIANCE_STANDARDS_REGISTRY: dict[str, dict] = {
         "clauses": [
             {
                 "clause": "ISO 14001 6.1.2 (환경측면 식별 및 환경영향평가)",
-                "title": "전과정(LCA) 관점 대기·수질·폐기물·에너지 환경측면 식별 및 중요 환경측면 관리",
+                "title": "전과정(LCA) 관점 대기·수질·폐기물·에너지 환경측면 식별 및 중요 환경측면 관리 기준 누락",
                 "keywords": ["환경측면", "환경영향", "폐기물", "배출", "온실가스", "에너지", "lca"],
                 "remediation": "정상·비정상·비상시 활동에서 발생하는 환경측면(대기배출, 폐수, 지정폐기물, 화학물질)을 식별하고 환경영향평가 점수표를 통해 중요 환경측면 저감 목표를 수립하세요.",
+                "template_snippet": "원부자재 입고부터 제조·폐기까지 전과정(LCA)의 환경측면을 연 1회 식별·평가하며, 유의성 기준 점수를 초과한 중요 환경측면은 연간 환경목표 및 저감 실행계획(EMP)을 수립하여 분기별로 실적을 점검한다.",
             },
             {
                 "clause": "ISO 45001 6.1.2 (사업장 위험성평가 및 아차사고 발굴)",
-                "title": "유해·위험요인 파악, 근로자 참여형 위험성평가 및 아차사고(Near-Miss) 개선",
+                "title": "유해·위험요인 파악, 근로자 참여형 위험성평가 및 아차사고(Near-Miss) 개선 절차 누락",
                 "keywords": ["위험성평가", "아차사고", "near-miss", "유해위험", "안전보호구", "작업환경", "재해"],
                 "remediation": "정기 및 수시 위험성평가에 현장 작업자 참여를 보장하고, 아차사고(Near-Miss) 발굴 보고 제도와 공학적 방호조치(인터락·안전가드) 개선 이력을 기록하세요.",
+                "template_snippet": "설비 신설·변경 및 정기 위험성평가 시 현장 작업자가 직접 참여하여 유해·위험요인을 발굴하며, 위험도 허용 기준 초과 공정은 안전 인터락·방호가드 등 공학적 개선 대책을 완료한 후 작업을 개시한다.",
             },
             {
                 "clause": "ISO 14001 / 45001 8.2 & 9.1.2 (비상사태 대응 및 법규준수 평가)",
-                "title": "화재·누출·중대재해 비상대응 시나리오 훈련 및 환경·산업안전 법규준수 평가표",
+                "title": "화재·누출·중대재해 비상대응 시나리오 훈련 및 환경·산업안전 법규준수 평가표 누락",
                 "keywords": ["비상사태", "비상대응", "소방", "누출", "법규", "산업안전", "훈련"],
                 "remediation": "화학물질 유출·화재·산업재해 발생 시 비상연락망과 초기 대응 시나리오 모의훈련을 반기별로 실시하고, 환경·안전보건 법규 등록부 및 준수 평가표를 최신화하세요.",
+                "template_snippet": "유해화학물질 누출 및 화재·중대재해 비상대응 시나리오에 따른 반기별 모의 대피·방재 훈련을 실시하고, 산업안전보건법 및 환경 관련 법규 준수 여부를 반기 1회 정량 평가하여 경영검토에 보고한다.",
             },
         ],
     },
@@ -197,21 +220,24 @@ COMPLIANCE_STANDARDS_REGISTRY: dict[str, dict] = {
         "clauses": [
             {
                 "clause": "RoHS 2 (EU 2015/863) 4대 중금속 및 6대 브롬계·프탈레이트 허용농도",
-                "title": "카드뮴(Cd ≤ 100ppm), 납·수은·6가크롬·PBB·PBDE·프탈레이트 4종(≤ 1,000ppm) 기준 검증",
+                "title": "카드뮴(Cd ≤ 100ppm), 납·수은·6가크롬·PBB·PBDE·프탈레이트 4종(≤ 1,000ppm) 기준 검증 누락",
                 "keywords": ["cd", "카드뮴", "pb", "납", "hg", "수은", "cr6", "6가크롬", "pbb", "pbde", "dehp", "100ppm", "1000ppm"],
-                "remediation": "균질재질(Homogeneous Material) 단위 공인기관 정밀분석(ICP-OES/GC-MS) 성적서를 확보하여 Cd < 100 ppm(0.01%), Pb/Hg/Cr6+/PBB/PBDE/DEHP/BBP/DBP/DIBP < 1,000 ppm(0.1%) 적합 여부를 판정하세요.",
+                "remediation": "균질재질(Homogeneous Material) 단위 공인기관 정밀분석(ICP-OES/GC-MS) 성적서를 확보하여 Cd <= 100 ppm(0.01%), Pb/Hg/Cr6+/PBB/PBDE/DEHP/BBP/DBP/DIBP <= 1,000 ppm(0.1%) 적합 여부를 판정하고 초과 시 8D Report 봉쇄조치를 시행하세요.",
+                "template_snippet": "모든 입고 부품은 균질재질 기준 RoHS 10대 제한물질 허용농도(Cd <= 100ppm, Pb·Hg·Cr6+·PBB·PBDE·프탈레이트 4종 <= 1,000ppm, 사내 안전관리기준 80% 이내)를 충족해야 하며, 기준 초과 검출 시 즉시 LOT 전량 반품 및 협력사 8D Report 시정조치를 명령한다.",
             },
             {
                 "clause": "REACH SVHC (고위험성우려물질) 및 MSDS(물질안전보건자료) 통제",
-                "title": "완제품 내 SVHC 후보물질 0.1 wt% 초과 여부 확인 및 최신 국문/영문 MSDS 비치",
+                "title": "완제품 내 SVHC 후보물질 0.1 wt% 초과 여부 확인 및 최신 국문/영문 MSDS 비치 누락",
                 "keywords": ["reach", "svhc", "msds", "물질안전보건자료", "화학물질", "성분표", "cas"],
                 "remediation": "유럽화학물질청(ECHA) 최신 SVHC 후보물질 리스트 대비 부품 내 함량(0.1 wt% 미만) 보증서를 징구하고, 현장 취급 화학물질의 16대 항목 MSDS를 최신본으로 비치하세요.",
+                "template_snippet": "협력사는 ECHA 최신 SVHC 고위험성우려물질이 중량 기준 0.1 wt%(1,000ppm) 이상 함유되지 않았음을 보증하는 비함유보증서와 16대 항목이 완비된 최신 MSDS(물질안전보건자료)를 초도 입고 전 제출하여야 한다.",
             },
             {
                 "clause": "친환경 원부자재 CoA·ICP 공인성적서 유효기한(1년) 및 비전격리 관리",
-                "title": "협력사 로트별 CoA 및 연간 ICP 정밀성적서 갱신 주기 인터락",
+                "title": "협력사 로트별 CoA 및 연간 ICP 정밀성적서 갱신 주기 인터락 누락",
                 "keywords": ["icp", "공인성적서", "유효기간", "1년", "보증서", "비할로겐", "무연", "pb-free"],
                 "remediation": "협력사 부품별 공인 시험성적서(유효기한 1년 이내) 만료일을 시스템에서 자동 추적하고, 무연(Pb-Free) 공정과 유연 공정의 혼입 방지 식별 관리 절차를 수립하세요.",
+                "template_snippet": "수입검사(IQC) 부서는 부품별 공인기관 ICP 정밀분석 성적서의 유효기한(발행일로부터 1년)을 ERP 입고 인터락으로 통제하며, 만료 30일 전 미갱신 협력사 LOT는 입고 승인을 자동 보류한다.",
             },
         ],
     },
@@ -309,6 +335,7 @@ def evaluate_iso_compliance(text: str, prompt: str = "", crawled_knowledge: str 
                 "title": c["title"],
                 "keywords": c["keywords"],
                 "remediation": c["remediation"],
+                "template_snippet": c.get("template_snippet", c["remediation"]),
             })
 
     # 미등록 규격(예: ISO 27001, HACCP 등) 폴백(Fallback) 동적 체크리스트 생성
@@ -318,23 +345,26 @@ def evaluate_iso_compliance(text: str, prompt: str = "", crawled_knowledge: str 
             {
                 "std_key": unreg_name,
                 "clause": f"{unreg_name} 제1영역 (문서화 체계·정책 및 표준 절차서 통제)",
-                "title": f"{unreg_name} 매뉴얼·절차서(SOP) 제·개정 이력, 승인권자 및 조직 책임·권한 정의",
+                "title": f"{unreg_name} 매뉴얼·절차서(SOP) 제·개정 이력, 승인권자 및 조직 책임·권한 정의 누락",
                 "keywords": ["문서번호", "개정번호", "승인", "절차서", "정책", "조직", "매뉴얼"],
                 "remediation": f"{unreg_name} 인증 심사 기준에 부합하도록 표준 절차서(SOP)에 문서번호·개정이력·승인권자를 명시하고 전담 관리책임자(팀장급) 지정서를 구비하세요.",
+                "template_snippet": f"본 {unreg_name} 표준 절차서는 문서번호·개정번호(Rev.)·시행일자 및 승인권자 서명을 포함하여 발행하며, 전담 관리책임자의 검토 없이 임의 변경할 수 없다.",
             },
             {
                 "std_key": unreg_name,
                 "clause": f"{unreg_name} 제2영역 (핵심 위험요소·중요관리점 식별 및 통제 기준)",
-                "title": f"{unreg_name} 특화 리스크 평가, 한계기준(Critical Limit) 설정 및 모니터링 주기",
+                "title": f"{unreg_name} 특화 리스크 평가, 한계기준(Critical Limit) 설정 및 모니터링 주기 누락",
                 "keywords": ["위험", "리스크", "한계기준", "모니터링", "점검", "통제", "중요관리"],
                 "remediation": f"{unreg_name} 요구사항에 따른 핵심 리스크/중요관리점(CCP·통제항목)을 도출하고 정량적 허용 한계치와 일일 모니터링 체크시트를 신설하세요.",
+                "template_snippet": f"{unreg_name} 핵심 관리 공정에 대해 정량적 한계기준(Critical Limit)과 일일 모니터링 주기를 설정하고, 한계기준 이탈 시 즉시 격리 및 8D 시정조치를 가동한다.",
             },
             {
                 "std_key": unreg_name,
                 "clause": f"{unreg_name} 제3영역 (내부심사·기록 보존 및 시정·예방조치 CAPA)",
-                "title": f"{unreg_name} 정기 내부심사, 한계이탈 시 즉각 개선조치(CAPA) 및 유효성 검증 기록",
+                "title": f"{unreg_name} 정기 내부심사, 한계이탈 시 즉각 개선조치(CAPA) 및 유효성 검증 기록 누락",
                 "keywords": ["내부심사", "시정조치", "capa", "개선", "유효성", "보존", "교육훈련"],
                 "remediation": f"{unreg_name} 사후심사 및 갱신심사 통과를 위해 연 1회 이상 내부심사 결과보고서, 임직원 정기 교육훈련 수료증, 부적합 발생 시 5-Why 기반 CAPA 이력철을 완비하세요.",
+                "template_snippet": f"연 1회 이상 {unreg_name} 전 조항에 대한 내부심사를 수행하며, 도출된 부적합(Gap) 사항은 5-Why 근본원인 규명 및 CAPA 시정조치 후 3개월 내 유효성을 검증하여 기록을 3년간 보존한다.",
             },
         ])
 
@@ -348,19 +378,19 @@ def evaluate_iso_compliance(text: str, prompt: str = "", crawled_knowledge: str 
             status = "✅ 적합(Compliant)"
             pass_clauses.append(c)
             clause_lines.append(
-                f"• [{c['clause']} — {status}]: {c['title']} 요건이 문서 내에 명확히 정의되어 기준을 충족합니다."
+                f"• [{c['clause']} — {status}]: 필수 요구사항이 문서 내에 명확히 정의되어 심사 기준을 충족합니다."
             )
         elif not has_actual_doc and idx == 1 and len(matched_kws) >= 1:
             status = "✅ 적합(기준 확인)"
             pass_clauses.append(c)
             clause_lines.append(
-                f"• [{c['clause']} — {status}]: {c['title']} 관리 기준이 수립되어 있습니다."
+                f"• [{c['clause']} — {status}]: 핵심 관리 기준이 수립되어 있습니다."
             )
         else:
             status = "🚨 부적합/보완필요(Gap)"
             gap_clauses.append(c)
             clause_lines.append(
-                f"• [{c['clause']} — {status}]: {c['title']}에 관한 세부 실행 절차 및 정량적 판정 기준이 누락되어 보완이 필요합니다."
+                f"• [{c['clause']} — {status}] ➔ [문서 내 누락된 필수 요구사항]: {c['title']}"
             )
 
     total_c = len(active_clauses)
@@ -376,7 +406,9 @@ def evaluate_iso_compliance(text: str, prompt: str = "", crawled_knowledge: str 
 
     guide_lines = []
     for gc in gap_clauses[:8]:
-        guide_lines.append(f"- [{gc['clause']}]: {gc['remediation']}")
+        guide_lines.append(
+            f"- [{gc['clause']}] ➔ [문서 내 누락된 필수 요구사항]: {gc['title']} ➔ [실무 보완 문구 예시(Template Snippet)]: \"{gc['template_snippet']}\""
+        )
 
     return "\n".join([header_summary] + clause_lines + guide_lines)
 
@@ -417,6 +449,12 @@ def evaluate_spec_compliance(spec_str: str, val_str: str) -> Tuple[Optional[bool
         bound = float(m_max.group(1) or m_max.group(2))
         dev = round(measured - bound, 3)
         return (measured <= bound), dev
+
+    m_plain = re.match(r"^[+-]?\d+(?:\.\d+)?$", re.sub(r"[,%\sA-Za-zμmMPap]+", "", s))
+    if m_plain:
+        bound = float(m_plain.group(0))
+        dev = round(measured - bound, 3)
+        return None, dev
 
     return None, None
 
@@ -459,6 +497,7 @@ def _analyze_tabular_rows(filename: str, all_clean_rows: list[list[str]], sessio
     structured_export_rows: list[list[str]] = []
 
     judge_idx = -1
+    lot_idx = -1
     vendor_idx = -1
     item_idx = -1
     check_idx = -1
@@ -470,6 +509,8 @@ def _analyze_tabular_rows(filename: str, all_clean_rows: list[list[str]], sessio
         h_low = h.lower()
         if any(k in h_low for k in ["판정", "합격", "불합격", "status", "judge"]):
             judge_idx = idx
+        elif any(k in h_low for k in ["lot", "로트", "제조번호", "배치", "batch", "serial"]):
+            lot_idx = idx
         elif any(k in h_low for k in ["협력사", "거래처", "공급사", "업체", "vendor", "supplier"]):
             vendor_idx = idx
         elif any(k in h_low for k in ["품목", "품명", "자재", "모델", "제품", "item", "product"]):
@@ -495,26 +536,36 @@ def _analyze_tabular_rows(filename: str, all_clean_rows: list[list[str]], sessio
         is_pass = not is_fail and any(k in judge_val for k in ["합격", "적합", "정상", "OK", "PASS", "불검출", "N.D"])
 
         auto_dev: Optional[float] = None
-        if not is_fail and not is_pass and (0 <= spec_idx < len(masked_row)) and (0 <= val_idx < len(masked_row)):
+        if (0 <= spec_idx < len(masked_row)) and (0 <= val_idx < len(masked_row)):
             spec_ok, calc_dev = evaluate_spec_compliance(masked_row[spec_idx], masked_row[val_idx])
             auto_dev = calc_dev
-            if spec_ok is False:
-                is_fail = True
-                row_str_join += f" | [규격 판정: 불합격 (편차 {calc_dev:+.2f})]"
-            elif spec_ok is True:
-                is_pass = True
-                row_str_join += f" | [규격 판정: 합격 (편차 {calc_dev:+.2f})]"
+            if not is_fail and not is_pass:
+                if spec_ok is False:
+                    is_fail = True
+                    row_str_join += f" | [규격 판정: 불합격 (편차 {calc_dev:+.2f})]"
+                elif spec_ok is True:
+                    is_pass = True
+                    row_str_join += f" | [규격 판정: 합격 (편차 {calc_dev:+.2f})]"
 
         export_row = list(masked_row) + [""] * max(0, len(headers) - len(masked_row))
         if judge_idx == -1:
             export_row.append("불합격(NG)" if is_fail else ("합격(OK)" if is_pass else "확인필요"))
         structured_export_rows.append(export_row)
 
+        lot_val = masked_row[lot_idx] if (0 <= lot_idx < len(masked_row) and masked_row[lot_idx]) else f"LOT-{r_num:02d}"
         vendor_name = masked_row[vendor_idx] if (0 <= vendor_idx < len(masked_row) and masked_row[vendor_idx]) else "기타/미상"
         item_name = masked_row[item_idx] if (0 <= item_idx < len(masked_row) and masked_row[item_idx]) else f"품목-{r_num}"
         check_name = masked_row[check_idx] if (0 <= check_idx < len(masked_row) and masked_row[check_idx]) else "치수/성분규격"
         spec_val = masked_row[spec_idx] if (0 <= spec_idx < len(masked_row) and masked_row[spec_idx]) else "기준규격"
         measured_val = masked_row[val_idx] if (0 <= val_idx < len(masked_row) and masked_row[val_idx]) else "측정치"
+
+        explicit_dev_str = masked_row[dev_idx] if (0 <= dev_idx < len(masked_row) and masked_row[dev_idx]) else ""
+        if explicit_dev_str:
+            raw_diff = explicit_dev_str
+        elif auto_dev is not None:
+            raw_diff = f"{auto_dev:+.2f}"
+        else:
+            raw_diff = "규격이탈"
 
         if is_fail:
             fail_count += 1
@@ -523,22 +574,36 @@ def _analyze_tabular_rows(filename: str, all_clean_rows: list[list[str]], sessio
             vendor_stats[vendor_name]["fail"] += 1
             pareto_key = f"{check_name}({item_name})" if check_idx != -1 else item_name
             defect_pareto_counts[pareto_key] = defect_pareto_counts.get(pareto_key, 0) + 1
+            if str(raw_diff).startswith("-"):
+                diff_display = f"미달 {raw_diff}"
+            elif str(raw_diff).startswith("+"):
+                diff_display = f"초과 {raw_diff}"
+            else:
+                diff_display = str(raw_diff)
             failed_items_records.append({
                 "row": str(r_num),
+                "lot": lot_val,
                 "vendor": vendor_name,
                 "item": item_name,
                 "check": check_name,
                 "spec": spec_val,
                 "measured": measured_val,
+                "diff": diff_display,
             })
-            fail_details.append(f"• [🚨 부적합(불합격) 검출 #{len(fail_details)+1} (행 {r_num})]: {row_str_join}.")
+            fail_details.append(
+                f"• [원본 #{r_num}행 | {lot_val} | {item_name}({vendor_name})] {check_name}: "
+                f"기준규격(Spec) '{spec_val}' 대비 실측값 '{measured_val}' 검출 ➔ 판정: 🚨 부적합 (초과/미달 편차: {diff_display})"
+            )
         elif is_pass:
             pass_count += 1
             vendor_stats.setdefault(vendor_name, {"total": 0, "fail": 0})
             vendor_stats[vendor_name]["total"] += 1
-            pass_details.append(f"• [✅ 적격(합격) 확인 #{len(pass_details)+1} (행 {r_num})]: {row_str_join}.")
+            pass_details.append(
+                f"• [원본 #{r_num}행 | {lot_val} | {item_name}({vendor_name})] {check_name}: "
+                f"기준규격(Spec) '{spec_val}' 대비 실측값 '{measured_val}' 확인 ➔ 판정: ✅ 적격(합격) (규격 내 편차: {raw_diff})"
+            )
         else:
-            pass_details.append(f"• [데이터 행 {r_num}]: {row_str_join}.")
+            pass_details.append(f"• [데이터 행 #{r_num}행]: {row_str_join}.")
 
         if 0 <= val_idx < len(masked_row) and masked_row[val_idx]:
             p_name = masked_row[item_idx] if (0 <= item_idx < len(masked_row)) else f"행{r_num}"

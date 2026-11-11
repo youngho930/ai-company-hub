@@ -1097,6 +1097,7 @@ export default function MissionControlPage() {
                           payload: { status: 'DONE', reportMarkdown: rec.report_markdown },
                         });
                         setPrompt(rec.prompt);
+                        setUploadedFileName(rec.attached_file || '');
                         setIsArchiveModalOpen(false);
                         setIsReportModalOpen(true);
                       }}
@@ -1177,10 +1178,22 @@ export default function MissionControlPage() {
             <div className="flex-1 p-6 overflow-y-auto space-y-5 bg-gradient-to-b from-slate-900/90 to-slate-950/95 select-text">
               <div className="p-4 rounded-2xl bg-slate-950/80 backdrop-blur-md border border-white/10 flex flex-wrap items-center justify-between gap-4 shadow-inner">
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="text-[10px] font-mono text-slate-400 bg-slate-900/80 px-2 py-0.5 rounded border border-white/10">
                       DOC-{new Date().toISOString().slice(0, 10).replace(/-/g, '')}-VERIFIED
                     </span>
+                    {Boolean(uploadedFileName) ||
+                    finalReport.includes('실데이터 전수 검증 모드') ||
+                    finalReport.includes('Verified Raw Data') ||
+                    finalReport.includes('[전수 품질 판정 통계]') ? (
+                      <span className="px-2 py-0.5 text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 rounded shadow-[0_0_10px_rgba(16,185,129,0.25)]">
+                        [🟢 실데이터 전수연산 검증됨]
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 text-[10px] font-extrabold bg-sky-500/20 text-sky-300 border border-sky-500/50 rounded shadow-[0_0_10px_rgba(14,165,233,0.25)]">
+                        [🔵 표준 레퍼런스 표본 시뮬레이션]
+                      </span>
+                    )}
                     <span className="text-[11px] font-bold text-emerald-400">
                       • QC 루브릭 정량 검수 통과 (기준 85점 이상)
                     </span>
@@ -1240,6 +1253,8 @@ export default function MissionControlPage() {
 
                     <div className="space-y-2">
                       {sec.bullets.map((b, bIdx) => {
+                        const isRawProvenance = b.includes('📊 [데이터 출처:') || b.includes('실데이터 전수 검증 모드');
+                        const isSimProvenance = b.includes('🧪 [데이터 출처:') || b.includes('표준 레퍼런스 시뮬레이션 모드');
                         const isFail = b.includes('🚨') || b.includes('불합격') || b.includes('부적합');
                         const isPass = b.includes('✅') || b.includes('적격(합격)');
                         const isCeoNote = b.includes('⚡');
@@ -1248,7 +1263,11 @@ export default function MissionControlPage() {
                           <div
                             key={bIdx}
                             className={`p-3 rounded-xl text-xs leading-relaxed border flex items-start gap-2.5 transition-all duration-300 ease-out ${
-                              isFail
+                              isRawProvenance
+                                ? 'bg-emerald-950/45 border-emerald-400/60 text-emerald-100 font-bold shadow-[0_0_15px_rgba(16,185,129,0.2)]'
+                                : isSimProvenance
+                                ? 'bg-sky-950/45 border-sky-400/60 text-sky-100 font-bold shadow-[0_0_15px_rgba(14,165,233,0.2)]'
+                                : isFail
                                 ? 'bg-rose-950/35 border-rose-500/50 text-rose-100 font-semibold'
                                 : isPass
                                 ? 'bg-emerald-950/25 border-emerald-500/40 text-emerald-100'

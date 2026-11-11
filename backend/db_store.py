@@ -178,7 +178,7 @@ def init_db() -> None:
             "WHERE length(report_markdown) < 250 "
             "OR prompt = '다시 찾아줘' "
             "OR normalized_prompt IS NULL "
-            "OR normalized_prompt NOT LIKE 'v4::%' "
+            "OR normalized_prompt NOT LIKE 'v5::%' "
             "OR report_markdown LIKE '%(검출 근거:%' "
             "OR report_markdown LIKE '%[실시간 크롤링%' "
             "OR report_markdown LIKE '%(일부 언급되었으나%'"
@@ -217,7 +217,7 @@ def normalize_query_key(prompt: str, attached_file: str = "") -> str:
     stop = {"대해서", "대해", "조사해줘", "알려줘", "작성해줘", "정리해줘", "분석해줘", "보고서", "써줘", "해줘", "파일의", "첨부한"}
     filtered = [t for t in tokens if t not in stop]
     key = "".join(filtered)
-    return f"v4::{key}::{attached_file.lower().strip()}"
+    return f"v5::{key}::{attached_file.lower().strip()}"
 
 def find_cached_mission(prompt: str, attached_file: str = "", session_id: str = "default") -> Optional[dict]:
     force_refresh, clean_p = is_force_refresh_prompt(prompt, session_id)

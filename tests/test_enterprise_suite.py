@@ -73,7 +73,8 @@ def run_all_tests():
     assert "파레토(Pareto) 빈도 분석" in summary
     assert "5-Why 근본원인 분석" in summary
     assert "CAPA(시정 및 예방조치)" in summary
-    print("✔ [기둥 3 통과] 엑셀/CSV 전수 행 통계 연산, PPM 지수(500,000 PPM), 파레토(Pareto), 5-Why & CAPA 자동 도출 확인 완료")
+    assert "[원본 #2행 | LOT-02 | 첨가제(신성켐텍)] 함량: 기준규격(Spec) '98.0' 대비 실측값 '97.4' 검출 ➔ 판정: 🚨 부적합 (초과/미달 편차: 미달 -0.6)" in summary
+    print("✔ [기둥 3 통과] 엑셀/CSV 전수 행 통계 연산, 1:1 감사 추적(Audit Trail: #Row/LOT/편차), PPM(500,000 PPM), 파레토, 5-Why & CAPA 확인 완료")
 
     # Test 4: 비동기 Non-blocking(httpx.AsyncClient) 및 urllib.request 완전 제거 확인
     with open("backend/tools/vision_browser.py", "r", encoding="utf-8") as f:
@@ -160,16 +161,21 @@ def run_all_tests():
     for forbidden in ["KGMP", "FDA", "REACH", "ISO 2859", "ISO 13485", "(검출 근거:", "[실시간 크롤링", "(일부 언급되었으나"]:
         assert forbidden not in ppm_report, f"무관한 규격 또는 메타 노이즈 혼입 검출: {forbidden}"
     assert "3,500 PPM" in ppm_report and "파레토(Pareto 80:20)" in ppm_report and "5-Why" in ppm_report and "8D" in ppm_report
+    assert "🧪 [데이터 출처: 표준 레퍼런스 시뮬레이션 모드 (Standard Baseline Sample)]" in ppm_report
 
     print("✔ [기둥 6 통과] 8대 핵심 국제규격(ISO 9001/13485/14971, IEC 60601/62304, KGMP/FDA, IATF 16949, ISO 14001/45001, RoHS/REACH) 및 미등록 규격(ISO 27001·HACCP) 폴백 심사 검증 완료")
 
-    # Test 7: samples/ 폴더 실무 테스트 파일 2종 파싱 및 심사 무결성 검증
+    # Test 7: samples/ 폴더 실무 테스트 파일 2종 파싱, 3단 Gap 보완 문구(Template Snippet), RA 키워드 및 데이터 출처 투명성 배지 검증
     with open("samples/의료기기_멸균포장_SOP_초안.txt", "rb") as f:
         sop_bytes = f.read()
     sop_summary, sop_meta = parse_uploaded_document("의료기기_멸균포장_SOP_초안.txt", sop_bytes)
     assert sop_meta["type"] == "ISO_COMPLIANCE_DOC"
     assert "ISO 13485" in sop_summary and "ISO 14971" in sop_summary
     assert "🚨 부적합/보완필요(Gap)" in sop_summary and "IQ/OQ/PQ" in sop_summary
+    assert "[문서 내 누락된 필수 요구사항]" in sop_summary and "[실무 보완 문구 예시(Template Snippet)]" in sop_summary
+    assert "식약처 기술문서 심사" in sop_summary and "UDI 고유기기식별자" in sop_summary
+    assert "ISO 11135" in sop_summary and "ISO 11137" in sop_summary
+    assert "Cpk >= 1.33" in sop_summary and "Ppk >= 1.67" in sop_summary and "8D Report" in sop_summary
 
     with open("samples/전장부품_수입검사_RoHS_성적서.csv", "rb") as f:
         rohs_bytes = f.read()
@@ -177,7 +183,18 @@ def run_all_tests():
     assert rohs_meta["rows"] == 8 and rohs_meta["pass_count"] == 5 and rohs_meta["fail_count"] == 3
     assert rohs_meta["ppm"] == 375000
     assert "375,000 PPM" in rohs_summary and "파레토(Pareto)" in rohs_summary and "IATF 16949" in rohs_summary and "RoHS" in rohs_summary
-    print("✔ [기둥 7 통과] samples/ 현업 시연 파일 2종(의료기기 SOP 초안 Gap 검출 & 전장 RoHS 성적서 8행 자동 연산) 검증 완료")
+    assert "[원본 #2행 | LOT-EV-002 | 고전압 커넥터 단자((주)오토닉스전장)] 도금두께: 기준규격(Spec) '15.0±0.5' 대비 실측값 '13.9μm' 검출 ➔ 판정: 🚨 부적합" in rohs_summary
+
+    rohs_report = build_comprehensive_5section_report(
+        "첨부한 '전장부품_수입검사_RoHS_성적서.csv' 파일의 핵심 수치와 불량률을 분석해줘",
+        f"[업로드된 첨부파일 전수 연산 데이터]\n{rohs_summary}",
+        {"id": "sup-qa-01", "name": "임승현 팀장", "dept": "품질보증·QA팀"},
+        {"id": "wrk-qa-01", "name": "한도윤 수석", "dept": "품질보증·QA팀"},
+        {"id": "wrk-qa-02", "name": "장지우 책임", "dept": "품질보증·QA팀"},
+    )
+    assert "📊 [데이터 출처: 실데이터 전수 검증 모드 (Verified Raw Data)] 첨부파일 '전장부품_수입검사_RoHS_성적서.csv' (총 8행 전수 수학 연산 완료 — 산술 환각 0%)" in rohs_report
+    assert "[원본 #2행 | LOT-EV-002 | 고전압 커넥터 단자((주)오토닉스전장)]" in rohs_report
+    print("✔ [기둥 7 통과] samples/ 현업 시연 파일 2종, 데이터 출처 투명성 배지(실데이터 vs 시뮬레이션), 3단 SOP 보완 템플릿 및 의료기기 RA 실무 디테일 검증 완료")
 
     print("=================================================================")
     print("🎉 [최종 감사 결과: 전 기술 기둥 & 다중 규격 레지스트리 100% 통과 (결함 0건)]")
