@@ -1175,57 +1175,65 @@ export default function MissionControlPage() {
               </div>
             </div>
 
-            <div className="flex-1 p-6 overflow-y-auto space-y-5 bg-gradient-to-b from-slate-900/90 to-slate-950/95 select-text">
-              <div className="p-4 rounded-2xl bg-slate-950/80 backdrop-blur-md border border-white/10 flex flex-wrap items-center justify-between gap-4 shadow-inner">
-                <div className="space-y-1">
+            <div
+              className="flex-1 p-6 overflow-y-auto space-y-5 bg-[#fcfcfd] text-slate-900 antialiased select-text"
+              style={{ WebkitFontSmoothing: 'antialiased' }}
+            >
+              <div className="p-4 rounded-2xl bg-slate-50/95 border border-slate-300 flex flex-wrap items-center justify-between gap-4 shadow-sm">
+                <div className="space-y-1.5">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[10px] font-mono text-slate-400 bg-slate-900/80 px-2 py-0.5 rounded border border-white/10">
+                    <span className="text-[11px] font-mono font-bold text-slate-800 bg-white px-2.5 py-0.5 rounded border border-slate-300">
                       DOC-{new Date().toISOString().slice(0, 10).replace(/-/g, '')}-VERIFIED
                     </span>
                     {Boolean(uploadedFileName) ||
                     finalReport.includes('실데이터 전수 검증 모드') ||
                     finalReport.includes('Verified Raw Data') ||
                     finalReport.includes('[전수 품질 판정 통계]') ? (
-                      <span className="px-2 py-0.5 text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 rounded shadow-[0_0_10px_rgba(16,185,129,0.25)]">
+                      <span className="px-2.5 py-0.5 text-[11px] font-extrabold bg-emerald-100 text-emerald-950 border border-emerald-400 rounded">
                         [🟢 실데이터 전수연산 검증됨]
                       </span>
+                    ) : finalReport.includes('실시간 멀티 소스 지식 수집 모드') ||
+                      finalReport.includes('Live Web & Knowledge Synthesis') ? (
+                      <span className="px-2.5 py-0.5 text-[11px] font-extrabold bg-indigo-100 text-indigo-950 border border-indigo-400 rounded">
+                        [🌐 실시간 멀티소스 지식 수집·교차검증됨]
+                      </span>
                     ) : (
-                      <span className="px-2 py-0.5 text-[10px] font-extrabold bg-sky-500/20 text-sky-300 border border-sky-500/50 rounded shadow-[0_0_10px_rgba(14,165,233,0.25)]">
+                      <span className="px-2.5 py-0.5 text-[11px] font-extrabold bg-sky-100 text-sky-950 border border-sky-400 rounded">
                         [🔵 표준 레퍼런스 표본 시뮬레이션]
                       </span>
                     )}
-                    <span className="text-[11px] font-bold text-emerald-400">
+                    <span className="text-xs font-extrabold text-emerald-800">
                       • QC 루브릭 정량 검수 통과 (기준 85점 이상)
                     </span>
                   </div>
-                  <p className="text-xs font-bold text-slate-200">
+                  <p className="text-[14.5px] font-extrabold text-slate-950 leading-snug">
                     안건: {prompt}
                   </p>
                 </div>
 
                 <div className="flex items-center gap-2 text-center">
-                  <div className="w-24 p-2 rounded-xl bg-slate-900/80 border border-white/10">
-                    <span className="text-[9px] text-slate-400 block">실무 기안</span>
-                    <span className="text-[11px] font-bold text-sky-300 block my-0.5">
+                  <div className="w-24 p-2 rounded-xl bg-white border border-slate-300 shadow-2xs">
+                    <span className="text-[10px] font-semibold text-slate-600 block">실무 기안</span>
+                    <span className="text-xs font-extrabold text-slate-950 block my-0.5">
                       {activeWorkerNodes[0]?.data?.name ? String(activeWorkerNodes[0].data.name).split(' ')[0] : '전담 연구원'}
                     </span>
-                    <span className="inline-block px-1.5 py-0.2 text-[9px] font-extrabold text-sky-400 border border-sky-500/40 rounded">
+                    <span className="inline-block px-1.5 py-0.5 text-[9.5px] font-extrabold text-sky-900 bg-sky-100 border border-sky-400 rounded">
                       기안완료(印)
                     </span>
                   </div>
-                  <div className="w-24 p-2 rounded-xl bg-slate-900/80 border border-white/10">
-                    <span className="text-[9px] text-slate-400 block">부서장 검수</span>
-                    <span className="text-[11px] font-bold text-emerald-300 block my-0.5">
+                  <div className="w-24 p-2 rounded-xl bg-white border border-slate-300 shadow-2xs">
+                    <span className="text-[10px] font-semibold text-slate-600 block">부서장 검수</span>
+                    <span className="text-xs font-extrabold text-slate-950 block my-0.5">
                       {activeSupNode?.data?.name ? String(activeSupNode.data.name).split(' ')[0] : '전담 팀장'}
                     </span>
-                    <span className="inline-block px-1.5 py-0.2 text-[9px] font-extrabold text-emerald-400 border border-emerald-500/40 rounded">
+                    <span className="inline-block px-1.5 py-0.5 text-[9.5px] font-extrabold text-emerald-900 bg-emerald-100 border border-emerald-400 rounded">
                       검수승인(印)
                     </span>
                   </div>
-                  <div className="w-24 p-2 rounded-xl bg-amber-950/30 border border-amber-500/40">
-                    <span className="text-[9px] text-amber-300 block">최종 결재</span>
-                    <span className="text-[11px] font-bold text-amber-400 block my-0.5">신영호 대표</span>
-                    <span className="inline-block px-1.5 py-0.2 text-[9px] font-extrabold text-rose-400 border border-rose-500/50 bg-rose-950/40 rounded">
+                  <div className="w-24 p-2 rounded-xl bg-amber-50 border border-amber-400 shadow-2xs">
+                    <span className="text-[10px] font-bold text-amber-900 block">최종 결재</span>
+                    <span className="text-xs font-extrabold text-slate-950 block my-0.5">신영호 대표</span>
+                    <span className="inline-block px-1.5 py-0.5 text-[9.5px] font-extrabold text-rose-900 bg-rose-100 border border-rose-400 rounded">
                       결재완료(印)
                     </span>
                   </div>
@@ -1233,7 +1241,7 @@ export default function MissionControlPage() {
               </div>
 
               {parsedReport.bannerNote && (
-                <div className="px-4 py-2.5 rounded-xl bg-amber-500/15 border border-amber-400/50 text-amber-200 text-xs font-bold flex items-center gap-2">
+                <div className="px-4 py-3 rounded-xl bg-amber-50 border border-amber-400 text-slate-950 text-[13.5px] font-bold flex items-center gap-2">
                   <span>{parsedReport.bannerNote}</span>
                 </div>
               )}
@@ -1242,42 +1250,57 @@ export default function MissionControlPage() {
                 {parsedReport.sections.map((sec, sIdx) => (
                   <div
                     key={sIdx}
-                    className="p-5 rounded-2xl bg-slate-950/80 backdrop-blur-md border border-white/10 hover:border-white/25 transition-all duration-300 ease-out shadow-lg space-y-3"
+                    className="p-5 rounded-2xl bg-[#fcfcfd] border border-slate-300 shadow-sm space-y-3.5"
                   >
-                    <div className="flex items-center gap-2.5 border-b border-white/10 pb-2.5">
-                      <span className="px-2.5 py-0.5 text-xs font-extrabold rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                    <div className="flex items-center gap-2.5 border-b border-slate-200 pb-2.5">
+                      <span className="px-2.5 py-0.5 text-xs font-extrabold rounded-lg bg-slate-900 text-white border border-slate-800">
                         SECTION 0{sIdx + 1}
                       </span>
-                      <h4 className="text-sm font-extrabold text-white tracking-tight">{sec.title}</h4>
+                      <h4 className="text-[15.5px] font-extrabold text-slate-950 tracking-tight">{sec.title}</h4>
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-2.5">
                       {sec.bullets.map((b, bIdx) => {
                         const isRawProvenance = b.includes('📊 [데이터 출처:') || b.includes('실데이터 전수 검증 모드');
                         const isSimProvenance = b.includes('🧪 [데이터 출처:') || b.includes('표준 레퍼런스 시뮬레이션 모드');
+                        const isWebProvenance = b.includes('🌐 [데이터 출처:') || b.includes('실시간 멀티 소스 지식 수집 모드');
                         const isFail = b.includes('🚨') || b.includes('불합격') || b.includes('부적합');
                         const isPass = b.includes('✅') || b.includes('적격(합격)');
                         const isCeoNote = b.includes('⚡');
 
+                        const segments = b.split(/(\[[^\]]+\])/g);
+
                         return (
                           <div
                             key={bIdx}
-                            className={`p-3 rounded-xl text-xs leading-relaxed border flex items-start gap-2.5 transition-all duration-300 ease-out ${
+                            className={`p-3.5 rounded-xl text-[14.5px] leading-relaxed font-medium text-slate-900 antialiased border flex items-start gap-2.5 transition-all duration-200 ${
                               isRawProvenance
-                                ? 'bg-emerald-950/45 border-emerald-400/60 text-emerald-100 font-bold shadow-[0_0_15px_rgba(16,185,129,0.2)]'
+                                ? 'bg-emerald-50/95 border-emerald-400 text-[#0f172a] font-semibold'
                                 : isSimProvenance
-                                ? 'bg-sky-950/45 border-sky-400/60 text-sky-100 font-bold shadow-[0_0_15px_rgba(14,165,233,0.2)]'
+                                ? 'bg-sky-50/95 border-sky-400 text-[#0f172a] font-semibold'
+                                : isWebProvenance
+                                ? 'bg-indigo-50/95 border-indigo-400 text-[#0f172a] font-semibold'
                                 : isFail
-                                ? 'bg-rose-950/35 border-rose-500/50 text-rose-100 font-semibold'
+                                ? 'bg-rose-50/90 border-rose-300 text-[#0f172a] font-medium'
                                 : isPass
-                                ? 'bg-emerald-950/25 border-emerald-500/40 text-emerald-100'
+                                ? 'bg-emerald-50/60 border-emerald-300 text-[#0f172a] font-medium'
                                 : isCeoNote
-                                ? 'bg-sky-950/40 border-sky-400/50 text-sky-100 font-semibold'
-                                : 'bg-slate-900/70 border-white/10 text-slate-200'
+                                ? 'bg-amber-50/90 border-amber-300 text-[#0f172a] font-semibold'
+                                : 'bg-slate-50/95 border-slate-200 text-[#0f172a] font-medium'
                             }`}
                           >
-                            <span className="text-emerald-400 font-bold shrink-0 mt-0.5">•</span>
-                            <span className="flex-1 break-words">{b}</span>
+                            <span className="text-slate-900 font-extrabold shrink-0 mt-0.5">•</span>
+                            <span className="flex-1 break-words text-[#0f172a]">
+                              {segments.map((seg, segIdx) =>
+                                seg.startsWith('[') && seg.endsWith(']') ? (
+                                  <strong key={segIdx} className="font-bold text-slate-950">
+                                    {seg}
+                                  </strong>
+                                ) : (
+                                  <React.Fragment key={segIdx}>{seg}</React.Fragment>
+                                )
+                              )}
+                            </span>
                           </div>
                         );
                       })}

@@ -1636,7 +1636,7 @@ export default function PixelRpgOffice({
     };
 
     // [초선명 HiDPI 2x Super-sampling 텍스트 & 캡슐 네임태그 렌더링]
-    // Pretendard / Malgun Gothic / Apple SD Gothic Neo 폰트 스택과 뚜렷한 명암 대비로 면도날처럼 선명한 가독성 확보
+    // 모든 말풍선·이름표·배너 좌표를 Math.round() 정수 픽셀 스냅핑하고 텍스트 렌더링 시 그림자 번짐(shadowBlur/shadowColor)을 완전히 제거
     const drawStaffOverlay = (
       ctx: CanvasRenderingContext2D,
       ag: OfficeStaff,
@@ -1644,42 +1644,47 @@ export default function PixelRpgOffice({
       isWorkingDesk: boolean
     ) => {
       const cx = Math.round(ag.x);
+      const cy = Math.round(ag.y);
       const isInMeeting = detectRoomByPoint(ag.x, ag.y) === 'MEETING_ROOM' && !isWalking;
 
       // 1) 신영호 대표 (CEO): 고대비 다크 캡슐 + 에메랄드 체크 아이콘
       if (ag.role === 'CEO') {
-        const capW = 126;
-        const capH = 35;
-        const capX = cx - capW / 2;
-        const labelY = Math.round(ag.y + 15);
+        const capW = 128;
+        const capH = 36;
+        const capX = Math.round(cx - capW / 2);
+        const labelY = Math.round(cy + 15);
 
         ctx.save();
         ctx.shadowColor = 'rgba(0, 0, 0, 0.72)';
         ctx.shadowBlur = 8;
+        ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 2;
 
         ctx.fillStyle = '#090d16';
         ctx.beginPath();
-        ctx.roundRect(capX, labelY, capW, capH, 8.5);
+        ctx.roundRect(capX, labelY, capW, capH, 8);
         ctx.fill();
 
         ctx.shadowBlur = 0;
+        ctx.shadowColor = 'transparent';
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
         ctx.strokeStyle = reportUnlockedRef.current ? '#fbbf24' : '#cbd5e1';
-        ctx.lineWidth = 1.7;
+        ctx.lineWidth = 1.8;
         ctx.stroke();
 
         // 상단 1열: 신영호 대표 (11.5px 초선명 화이트)
         ctx.fillStyle = '#ffffff';
         ctx.font = `800 11.5px ${FONT_FAMILY}`;
         ctx.textAlign = 'center';
-        ctx.fillText(ag.name, cx, labelY + 14);
+        ctx.fillText(ag.name, cx, Math.round(labelY + 14));
 
-        // 하단 2열: 에메랄드 체크 아이콘 + 상태 텍스트 (10px)
-        const iconX = capX + 18;
-        const iconY = labelY + 25.5;
+        // 하단 2열: 에메랄드 체크 아이콘 + 상태 텍스트 (10.5px)
+        const iconX = Math.round(capX + 18);
+        const iconY = Math.round(labelY + 26);
         ctx.fillStyle = '#10b981';
         ctx.beginPath();
-        ctx.arc(iconX, iconY, 5.0, 0, Math.PI * 2);
+        ctx.arc(iconX, iconY, 5, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.strokeStyle = '#ffffff';
@@ -1691,80 +1696,90 @@ export default function PixelRpgOffice({
         ctx.stroke();
 
         ctx.fillStyle = '#f8fafc';
-        ctx.font = `700 10px ${FONT_FAMILY}`;
+        ctx.font = `800 10.5px ${FONT_FAMILY}`;
         ctx.textAlign = 'left';
         const ceoSubLabel = ag.taskLabel.replace(/^✅\s*/, '').replace(/^📚\s*/, '').slice(0, 10);
-        ctx.fillText(ceoSubLabel, iconX + 8, labelY + 29);
+        ctx.fillText(ceoSubLabel, Math.round(iconX + 8), Math.round(labelY + 30));
         ctx.restore();
       } else if (!ag.isSelectedTeam) {
-        // 2) 비활성(대기) 부서원: 고대비 다크 슬레이트 캡슐 + 11px 초선명 화이트 텍스트
-        const pillW = 114;
-        const pillH = 27;
-        const pillX = cx - pillW / 2;
-        const labelY = Math.round(ag.y + 26);
+        // 2) 비활성(대기) 부서원: 고대비 다크 슬레이트 캡슐 + 11.5px 초선명 화이트 텍스트
+        const pillW = 116;
+        const pillH = 28;
+        const pillX = Math.round(cx - pillW / 2);
+        const labelY = Math.round(cy + 26);
 
         ctx.save();
         ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
         ctx.shadowBlur = 6;
+        ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 2;
 
         ctx.fillStyle = '#0b1120';
         ctx.beginPath();
-        ctx.roundRect(pillX, labelY, pillW, pillH, 8.5);
+        ctx.roundRect(pillX, labelY, pillW, pillH, 8);
         ctx.fill();
 
         ctx.shadowBlur = 0;
-        ctx.strokeStyle = 'rgba(203, 213, 225, 0.82)';
-        ctx.lineWidth = 1.4;
+        ctx.shadowColor = 'transparent';
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+        ctx.strokeStyle = 'rgba(203, 213, 225, 0.85)';
+        ctx.lineWidth = 1.5;
         ctx.stroke();
 
         ctx.fillStyle = '#ffffff';
-        ctx.font = `800 11px ${FONT_FAMILY}`;
+        ctx.font = `800 11.5px ${FONT_FAMILY}`;
         ctx.textAlign = 'center';
-        ctx.fillText(`${ag.name.split(' ')[0]} (대기)`, cx, labelY + 17.5);
+        ctx.fillText(`${ag.name.split(' ')[0]} (대기)`, cx, Math.round(labelY + 18));
         ctx.restore();
         return;
       } else {
-        // 3) 전담 투입 부서원: 고대비 다크 캡슐 + 프로그레스 바 + 11px/9px 초선명 텍스트
+        // 3) 전담 투입 부서원: 고대비 다크 캡슐 + 프로그레스 바 + 11.5px/9.5px 초선명 텍스트
         const isReject = ag.taskLabel.includes('반려');
-        const capW = 118;
-        const capH = 31;
-        const capX = cx - capW / 2;
-        const labelY = isInMeeting ? Math.round(ag.y + 18) : Math.round(ag.y + 25);
+        const capW = 120;
+        const capH = 32;
+        const capX = Math.round(cx - capW / 2);
+        const labelY = isInMeeting ? Math.round(cy + 18) : Math.round(cy + 25);
 
         ctx.save();
         ctx.shadowColor = 'rgba(0, 0, 0, 0.72)';
         ctx.shadowBlur = 8;
+        ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 2;
 
         ctx.fillStyle = '#090d16';
         ctx.beginPath();
-        ctx.roundRect(capX, labelY, capW, capH, 8.5);
+        ctx.roundRect(capX, labelY, capW, capH, 8);
         ctx.fill();
 
         ctx.shadowBlur = 0;
+        ctx.shadowColor = 'transparent';
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
         ctx.strokeStyle = isReject ? '#fb7185' : ag.isShelfMode ? '#fbbf24' : isWorkingDesk ? '#38bdf8' : '#34d399';
-        ctx.lineWidth = 1.7;
+        ctx.lineWidth = 1.8;
         ctx.stroke();
 
         ctx.fillStyle = '#ffffff';
-        ctx.font = `800 11px ${FONT_FAMILY}`;
+        ctx.font = `800 11.5px ${FONT_FAMILY}`;
         ctx.textAlign = 'center';
-        ctx.fillText(ag.name, cx, labelY + 13);
+        ctx.fillText(ag.name, cx, Math.round(labelY + 13));
 
+        const barX = Math.round(cx - 50);
+        const barY = Math.round(labelY + 17);
         ctx.fillStyle = '#1e293b';
         ctx.beginPath();
-        ctx.roundRect(cx - 50, labelY + 17, 100, 10, 5);
+        ctx.roundRect(barX, barY, 100, 11, 5);
         ctx.fill();
         if (ag.progress > 0) {
           ctx.fillStyle = isReject ? '#e11d48' : ag.isShelfMode ? '#d97706' : ag.progress >= 100 ? '#059669' : '#0284c7';
           ctx.beginPath();
-          ctx.roundRect(cx - 50, labelY + 17, Math.max(10, Math.round((100 * ag.progress) / 100)), 10, 5);
+          ctx.roundRect(barX, barY, Math.max(10, Math.round((100 * ag.progress) / 100)), 11, 5);
           ctx.fill();
         }
         ctx.fillStyle = '#ffffff';
-        ctx.font = `800 9px ${FONT_FAMILY}`;
-        ctx.fillText(isWalking ? '🚶 이동 중..' : ag.taskLabel.slice(0, 13), cx, labelY + 25);
+        ctx.font = `800 9.5px ${FONT_FAMILY}`;
+        ctx.fillText(isWalking ? '🚶 이동 중..' : ag.taskLabel.slice(0, 13), cx, Math.round(labelY + 26));
         ctx.restore();
       }
 
@@ -1774,62 +1789,75 @@ export default function PixelRpgOffice({
           ag.bubbleAnim = 0;
         }
         ag.bubbleAnim = Math.min(1, ag.bubbleAnim + 0.085);
-        const bScale = easeOutBack(ag.bubbleAnim);
+        const bScale = ag.bubbleAnim >= 0.99 ? 1 : easeOutBack(ag.bubbleAnim);
 
         const isReject = ag.taskLabel.includes('반려');
-        const bw = 214;
-        const bh = 36;
-        let bx = cx - bw / 2;
-        let by = Math.round(ag.y - 70);
+        const bw = 236;
+        const bh = 40;
+        let bx = Math.round(cx - bw / 2);
+        let by = Math.round(cy - 72);
 
         if (isInMeeting) {
           if (ag.role === 'CEO') {
-            bx = cx - bw / 2;
-            by = Math.round(ag.y - 68);
+            bx = Math.round(cx - bw / 2);
+            by = Math.round(cy - 70);
           } else if (ag.role === 'SUPERVISOR') {
-            bx = cx - bw + 32;
-            by = Math.round(ag.y - 66);
+            bx = Math.round(cx - bw + 32);
+            by = Math.round(cy - 68);
           } else if (ag.role === 'WORKER1') {
-            bx = cx - bw + 24;
-            by = Math.round(ag.y + 46);
+            bx = Math.round(cx - bw + 24);
+            by = Math.round(cy + 46);
           } else {
-            bx = cx - 24;
-            by = Math.round(ag.y + 46);
+            bx = Math.round(cx - 24);
+            by = Math.round(cy + 46);
           }
         }
 
-        bx = Math.max(8, Math.min(CW - bw - 8, bx));
-        by = Math.max(6, Math.min(CH - bh - 6, by));
+        bx = Math.round(Math.max(8, Math.min(CW - bw - 8, bx)));
+        by = Math.round(Math.max(6, Math.min(CH - bh - 6, by)));
 
-        const centerBx = bx + bw / 2;
-        const centerBy = by + bh / 2;
+        const centerBx = Math.round(bx + bw / 2);
+        const centerBy = Math.round(by + bh / 2);
 
         ctx.save();
-        ctx.translate(centerBx, centerBy);
-        ctx.scale(bScale, bScale);
-        ctx.translate(-centerBx, -centerBy);
+        if (bScale !== 1) {
+          ctx.translate(centerBx, centerBy);
+          ctx.scale(bScale, bScale);
+          ctx.translate(-centerBx, -centerBy);
+        }
 
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.55)';
-        ctx.shadowBlur = 10;
-        ctx.shadowOffsetY = 3;
+        ctx.shadowColor = 'rgba(15, 23, 42, 0.45)';
+        ctx.shadowBlur = 8;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 2;
 
-        ctx.fillStyle = isReject ? '#881337' : ag.isShelfMode ? '#fef9c3' : '#ffffff';
+        // 눈이 시리지 않은 고급 오프화이트(#f8fafc) 배경 + 진한 다크 슬레이트(#1e293b, 2px) 테두리
+        ctx.fillStyle = isReject ? '#881337' : ag.isShelfMode ? '#fefce8' : '#f8fafc';
         ctx.beginPath();
         ctx.roundRect(bx, by, bw, bh, 9);
         ctx.fill();
 
+        // 텍스트 및 외곽선 렌더링 전 그림자 번짐 완전 차단
         ctx.shadowBlur = 0;
-        ctx.strokeStyle = isReject ? '#fda4af' : ag.isShelfMode ? '#ca8a04' : '#0f172a';
+        ctx.shadowColor = 'transparent';
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+
+        ctx.strokeStyle = isReject ? '#fda4af' : ag.isShelfMode ? '#b45309' : '#1e293b';
         ctx.lineWidth = 2.0;
         ctx.stroke();
 
-        ctx.fillStyle = isReject ? '#ffffff' : '#090d16';
-        ctx.font = `800 10.5px ${FONT_FAMILY}`;
+        // 완전한 딥 블랙(#0f172a) + ExtraBold(800) + 11.5px 초선명 텍스트 + 정수 픽셀 스냅핑
+        ctx.fillStyle = isReject ? '#ffffff' : '#0f172a';
+        ctx.font = `800 11.5px ${FONT_FAMILY}`;
         ctx.textAlign = 'center';
-        const l1 = ag.activeBubble.slice(0, 22);
-        const l2 = ag.activeBubble.slice(22, 44);
-        ctx.fillText(l1, bx + bw / 2, by + (l2 ? 14.5 : 22));
-        if (l2) ctx.fillText(l2, bx + bw / 2, by + 28.5);
+        const l1 = ag.activeBubble.slice(0, 21);
+        const l2 = ag.activeBubble.slice(21, 42);
+        const textX = Math.round(bx + bw / 2);
+        const textY1 = Math.round(by + (l2 ? 16 : 24));
+        const textY2 = Math.round(by + 32);
+        ctx.fillText(l1, textX, textY1);
+        if (l2) ctx.fillText(l2, textX, textY2);
 
         ctx.restore();
       }
@@ -2184,15 +2212,17 @@ export default function PixelRpgOffice({
 
       if (reportUnlockedRef.current) {
         reportBannerAnimRef.current = Math.min(1, reportBannerAnimRef.current + 0.065);
-        const bannerScale = easeOutBack(reportBannerAnimRef.current);
-        const bounceDoc = Math.sin(f * 0.12) * 3;
-        const tx = MEETING_TABLE_CENTER.x;
-        const ty = MEETING_TABLE_CENTER.y + bounceDoc;
+        const bannerScale = reportBannerAnimRef.current >= 0.99 ? 1 : easeOutBack(reportBannerAnimRef.current);
+        const bounceDoc = Math.round(Math.sin(f * 0.12) * 3);
+        const tx = Math.round(MEETING_TABLE_CENTER.x);
+        const ty = Math.round(MEETING_TABLE_CENTER.y + bounceDoc);
 
         ctx.save();
-        ctx.translate(tx, ty);
-        ctx.scale(bannerScale, bannerScale);
-        ctx.translate(-tx, -ty);
+        if (bannerScale !== 1) {
+          ctx.translate(tx, ty);
+          ctx.scale(bannerScale, bannerScale);
+          ctx.translate(-tx, -ty);
+        }
 
         const docGlow = ctx.createRadialGradient(tx, MEETING_TABLE_CENTER.y, 4, tx, MEETING_TABLE_CENTER.y, 44);
         if (f % 30 < 15) {
@@ -2208,22 +2238,30 @@ export default function PixelRpgOffice({
         ctx.fill();
 
         ctx.fillStyle = '#fef08a';
-        ctx.fillRect(tx - 15, ty - 12, 30, 22);
+        ctx.fillRect(Math.round(tx - 15), Math.round(ty - 12), 30, 22);
         ctx.strokeStyle = '#ca8a04';
         ctx.lineWidth = 2;
-        ctx.strokeRect(tx - 15, ty - 12, 30, 22);
+        ctx.strokeRect(Math.round(tx - 15), Math.round(ty - 12), 30, 22);
 
-        ctx.fillStyle = '#047857';
+        const bannerX = Math.round(tx - 84);
+        const bannerY = Math.round(ty - 40);
+        ctx.fillStyle = '#064e3b';
         ctx.beginPath();
-        ctx.roundRect(tx - 78, ty - 38, 156, 24, 7);
+        ctx.roundRect(bannerX, bannerY, 168, 26, 7);
         ctx.fill();
-        ctx.strokeStyle = '#fde047';
+
+        ctx.shadowBlur = 0;
+        ctx.shadowColor = 'transparent';
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+
+        ctx.strokeStyle = '#fbbf24';
         ctx.lineWidth = 2.0;
         ctx.stroke();
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = '#fef08a';
         ctx.font = `800 11.5px ${FONT_FAMILY}`;
         ctx.textAlign = 'center';
-        ctx.fillText('📋 최종 보고서 (클릭)', tx, ty - 22);
+        ctx.fillText('📋 최종 보고서 (클릭)', tx, Math.round(bannerY + 17));
 
         ctx.restore();
       }
@@ -2254,7 +2292,7 @@ export default function PixelRpgOffice({
           {reportUnlocked && (
             <button
               onClick={onOpenReportModal}
-              className="px-3.5 py-1 text-[11px] font-extrabold bg-gradient-to-r from-amber-400 to-yellow-300 hover:from-amber-300 hover:to-yellow-200 text-slate-950 rounded-lg shadow-[0_0_18px_rgba(251,191,36,0.55)] hover:scale-105 active:scale-95 transition-all duration-300 ease-out animate-bounce"
+              className="px-3.5 py-1 text-[11.5px] font-extrabold bg-[#064e3b] hover:bg-[#047857] text-[#fef08a] border border-amber-400/90 rounded-lg shadow-[0_0_16px_rgba(6,78,59,0.85)] hover:scale-105 active:scale-95 transition-all duration-300 ease-out antialiased"
             >
               📋 전자결재 보고서 열람 & 다운로드
             </button>
@@ -2334,12 +2372,14 @@ export default function PixelRpgOffice({
         {reportUnlocked && (
           <button
             onClick={() => onOpenReportModal && onOpenReportModal()}
-            style={{
-              animation: 'bounce 1.2s infinite, pulse 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-            }}
-            className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 px-6 py-3 text-xs font-extrabold bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 hover:brightness-110 hover:scale-105 active:scale-95 text-slate-950 rounded-2xl shadow-[0_0_35px_rgba(251,191,36,0.85)] border-2 border-white/90 backdrop-blur-md flex items-center gap-2.5 cursor-pointer transition-all duration-300 ease-out"
+            className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 px-6 py-3 text-[12.5px] font-extrabold bg-gradient-to-r from-[#064e3b] via-[#0f172a] to-[#064e3b] hover:from-[#047857] hover:via-[#1e293b] hover:to-[#047857] hover:scale-[1.03] active:scale-95 text-[#fef08a] rounded-2xl shadow-[0_10px_35px_rgba(0,0,0,0.85),0_0_24px_rgba(16,185,129,0.45)] border-2 border-[#fbbf24] flex items-center gap-2.5 cursor-pointer transition-all duration-300 ease-out antialiased"
           >
-            <span>📋 중앙 회의실 최종 전자결재 보고서 도착! (클릭하여 결재문서 열람 및 Word·Excel·PDF 저장)</span>
+            <span className="text-[#ffffff] bg-emerald-600/90 px-2 py-0.5 rounded-md text-[11px] font-black border border-emerald-300/60">
+              결재 완료
+            </span>
+            <span className="tracking-tight text-[#fef08a]">
+              📋 중앙 회의실 최종 전자결재 보고서 도착! <span className="text-white font-bold">(클릭하여 결재문서 열람 및 Word·Excel·PDF 저장)</span>
+            </span>
           </button>
         )}
       </div>

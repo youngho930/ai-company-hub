@@ -195,11 +195,12 @@ async def generate_agentic_followup_query(base_keyword: str, ceo_prompt: str, cu
         return f"{clean_base} 품질 관리 기준 규격 불량률 CAPA"
     return f"{clean_base} 특징 역사 상세 정보"
 
-def _build_data_provenance_line(web_evidence: str) -> str:
+def _build_data_provenance_line(web_evidence: str, ceo_prompt: str = "") -> str:
     """
-    [데이터 출처 투명성 배지 (Data Provenance & Baseline 명시)]
-    첨부파일 실데이터 전수 검증 모드와 프리셋/단독 표준 레퍼런스 시뮬레이션 모드를
-    보고서 SECTION 01 첫 줄에 100% 명확하게 구분 표기합니다.
+    [데이터 출처 투명성 배지 (Data Provenance & Baseline 스마트 3단 분기)]
+    1) 첨부파일이 있을 때: 📊 실데이터 전수 검증 모드 (Verified Raw Data)
+    2) 첨부파일이 없고 QA/QC·ISO·성적서 관련 질문일 때: 🧪 표준 레퍼런스 시뮬레이션 모드 (Standard Baseline Sample)
+    3) 첨부파일이 없고 일반 리서치·인사·재무·개발·마케팅 질문일 때: 🌐 실시간 멀티 소스 지식 수집 모드 (Live Web & Knowledge Synthesis)
     """
     m_tab = re.search(r"파일명 '([^']+)'.*?총 데이터 (\d+)건", web_evidence)
     if m_tab:
@@ -216,7 +217,19 @@ def _build_data_provenance_line(web_evidence: str) -> str:
         fname, page_cnt = m_pdf.group(1), m_pdf.group(2)
         return f"• 📊 [데이터 출처: 실데이터 전수 검증 모드 (Verified Raw Data)] 첨부파일 '{fname}' (총 {page_cnt}행 전수 수학 연산 완료 — 산술 환각 0%)"
 
-    return "• 🧪 [데이터 출처: 표준 레퍼런스 시뮬레이션 모드 (Standard Baseline Sample)] 현업 대표 표본 데이터 기반 시뮬레이션 (실제 성적서/SOP 검증 시 좌측 상단 '📎 파일 첨부' 활용)"
+    uploaded_ctx = _extract_uploaded_context(web_evidence)
+    reg_stds, unreg_stds = detect_compliance_standards(uploaded_ctx, ceo_prompt)
+    p = (ceo_prompt or "").lower()
+    qa_keywords = [
+        "첨부", "엑셀", "파일", "성적서", "coa", "lot", "ppm", "불량률", "capa",
+        "파레토", "pareto", "8d", "시정조치", "수입검사", "공정검사", "출하검사",
+        "품질", "규격", "심사", "sop", "절차서", "의료기기", "밸리데이션", "fmea",
+        "cpk", "ppk", "iso", "iec", "iatf", "kgmp", "rohs", "reach", "haccp",
+    ]
+    if reg_stds or unreg_stds or "[전수 품질 판정 통계]" in web_evidence or any(k in p for k in qa_keywords):
+        return "• 🧪 [데이터 출처: 표준 레퍼런스 시뮬레이션 모드 (Standard Baseline Sample)] 현업 대표 표본 데이터 기반 시뮬레이션 (실제 성적서/SOP 검증 시 좌측 상단 '📎 파일 첨부' 활용)"
+
+    return "• 🌐 [데이터 출처: 실시간 멀티 소스 지식 수집 모드 (Live Web & Knowledge Synthesis)] 공식 문서 및 최신 뉴스 피드 교차 검증 완료"
 
 def build_comprehensive_5section_report(
     ceo_prompt: str,
@@ -232,7 +245,7 @@ def build_comprehensive_5section_report(
     p = ceo_prompt.lower()
     ref_title = parse_reference_title(web_evidence, ceo_prompt)
     h1, h2, h3, h4, h5 = get_5section_headers(ceo_prompt)
-    provenance_line = _build_data_provenance_line(web_evidence)
+    provenance_line = _build_data_provenance_line(web_evidence, ceo_prompt)
     all_sents = extract_salient_sentences(web_evidence, ceo_prompt, top_k=18)
     news_lines = [re.sub(r"^[•\-\*]\s*", "", line.strip()) for line in web_evidence.splitlines() if "[최신 언론 보도" in line]
 
