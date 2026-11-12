@@ -195,6 +195,22 @@ async def generate_agentic_followup_query(base_keyword: str, ceo_prompt: str, cu
         return f"{clean_base} 품질 관리 기준 규격 불량률 CAPA"
     return f"{clean_base} 특징 역사 상세 정보"
 
+CEO_REJECT_DIRECTIVE_PATTERN = re.compile(r"\s*\[↩️ 대표 결재 반려 보완지시(?:\s*#\d+)?:\s*([^\]]+)\]")
+
+
+def split_ceo_reject_directives(prompt: str) -> tuple[str, list[str]]:
+    """
+    [전자결재 대표 반려(Reject & Re-run) 지시 분리]
+    프론트엔드 결재 모달에서 '↩️ 결재 반려'로 결합된 안건
+    예) "불량률 CAPA 보고서 작성해줘 [↩️ 대표 결재 반려 보완지시 #1: 협력사 Cpk 산포 개선 대책 구체화]"
+    를 (원 안건, [반려 사유...])로 분리하여, 부서 라우팅/규격 감지는 원 안건 기준으로 유지하고
+    반려 사유는 CEO 실시간 지시사항(live_ceo_notes)으로 주입해 2차 심화 보강 루프를 강제 가동합니다.
+    """
+    reasons = [m.strip() for m in CEO_REJECT_DIRECTIVE_PATTERN.findall(prompt or "") if m.strip()]
+    core = CEO_REJECT_DIRECTIVE_PATTERN.sub("", prompt or "").strip()
+    return (core or (prompt or "").strip()), reasons
+
+
 def _build_data_provenance_line(web_evidence: str, ceo_prompt: str = "") -> str:
     """
     [데이터 출처 투명성 배지 (Data Provenance & Baseline 스마트 3단 분기)]
@@ -266,14 +282,19 @@ def build_comprehensive_5section_report(
         stat_lines = [
             line.strip()
             for line in web_evidence.splitlines()
-            if any(t in line for t in ["[첨부 데이터 전수", "[전수 품질 판정", "[불량 유형/항목별 파레토", "[협력사별 품질", "[항목별 실측치", "[보조 시트", "[규격 적합성 정량 진단 요약"])
+            if any(t in line for t in ["[첨부 데이터 전수", "[전수 품질 판정", "[불량 유형/항목별 파레토", "[협력사별 품질", "[항목별 실측치", "[Real SPC 공정능력", "[보조 시트", "[규격 적합성 정량 진단 요약"])
         ]
+        spc_warn_lines = [line.strip() for line in web_evidence.splitlines() if "⚠️ [잠재 산포 리스크 경고]" in line]
         fail_lines = [line.strip() for line in web_evidence.splitlines() if any(t in line for t in ["🚨 부적합", "✅ 적격"])]
         why_lines = [line.strip() for line in web_evidence.splitlines() if "[기준치 초과 품목 5-Why" in line]
         capa_lines = [line.strip() for line in web_evidence.splitlines() if "[CAPA(시정 및 예방조치)" in line]
 
-        sec2_bullets = "\n".join([f"• {re.sub(r'^[•\-\*]\s*', '', sl)}" for sl in stat_lines])
-        sec3_bullets = "\n".join([f"• {re.sub(r'^[•\-\*]\s*', '', fl)}" for fl in fail_lines[:10]])
+        # SECTION 02: 전수 통계 + Real SPC(σ·Cp·Cpk) + 잠재 산포 리스크 경고 요약
+        sec2_items = stat_lines + spc_warn_lines[:4]
+        # SECTION 03: 부적합 LOT 1:1 Audit Trail + 규격 내 합격이지만 산포/경계 위험인 LOT 상세
+        sec3_items = fail_lines[:10] + spc_warn_lines[:8]
+        sec2_bullets = "\n".join([f"• {re.sub(r'^[•\-\*]\s*', '', sl)}" for sl in sec2_items])
+        sec3_bullets = "\n".join([f"• {re.sub(r'^[•\-\*]\s*', '', fl)}" for fl in sec3_items])
         sec4_extra = "\n".join([f"• {re.sub(r'^[•\-\*]\s*', '', wl)}" for wl in why_lines])
         sec5_capa = "\n".join([f"• {re.sub(r'^[•\-\*]\s*', '', cl)}" for cl in capa_lines])
         return (
@@ -281,7 +302,7 @@ def build_comprehensive_5section_report(
             f"{provenance_line}\n"
             f"• 전담 수행 부서: {sup['dept']} (검수 책임자: {sup['name']} / 정밀 분석: {w1['name']}, {w2['name']})\n"
             f"• 검증 데이터 출처: {ref_title}\n"
-            f"• 핵심 판정 요약: 첨부된 품질 데이터의 전체 행(Row)을 파이썬 결정론적 연산 엔진으로 100% 전수 분석하여 원본 행 번호(#Row)·LOT번호 1:1 감사 추적(Audit Trail), 공정 PPM 지수, 파레토(Pareto) 우선순위, 5-Why 근본원인 및 8D CAPA 대책을 도출했습니다.{ceo_override_block}\n\n"
+            f"• 핵심 판정 요약: 첨부된 품질 데이터의 전체 행(Row)을 파이썬 결정론적 연산 엔진으로 100% 전수 분석하여 원본 행 번호(#Row)·LOT번호 1:1 감사 추적(Audit Trail), 공정 PPM 지수, Real SPC 공정능력(평균·표준편차 σ·Cp·Cpk·규격 여유도), 파레토(Pareto) 우선순위, 5-Why 근본원인 및 8D CAPA 대책을 도출했습니다.{ceo_override_block}\n\n"
             f"{h2}\n{sec2_bullets}\n\n"
             f"{h3}\n{sec3_bullets}\n\n"
             f"{h4}\n"
@@ -367,7 +388,7 @@ def build_comprehensive_5section_report(
             stat_lines = [
                 line.strip()
                 for line in web_evidence.splitlines()
-                if any(t in line for t in ["[첨부 데이터 전수", "[전수 품질 판정", "[불량 유형/항목별 파레토", "[협력사별 품질", "[항목별 실측치", "[보조 시트"])
+                if any(t in line for t in ["[첨부 데이터 전수", "[전수 품질 판정", "[불량 유형/항목별 파레토", "[협력사별 품질", "[항목별 실측치", "[Real SPC 공정능력", "⚠️ [잠재 산포 리스크 경고]", "[보조 시트"])
             ]
             fail_lines = [line.strip() for line in web_evidence.splitlines() if any(t in line for t in ["🚨 부적합", "✅ 적격"])]
             why_lines = [line.strip() for line in web_evidence.splitlines() if "[기준치 초과 품목 5-Why" in line]
@@ -382,7 +403,7 @@ def build_comprehensive_5section_report(
                 f"{provenance_line}\n"
                 f"• 전담 수행 부서: {sup['dept']} (검수 책임자: {sup['name']} / 정밀 분석: {w1['name']}, {w2['name']})\n"
                 f"• 검증 데이터 출처: {ref_title}\n"
-                f"• 핵심 판정 요약: 첨부된 품질 데이터의 전체 행(Row)을 파이썬 결정론적 연산 엔진으로 100% 전수 분석하여 원본 행 번호(#Row)·LOT번호 1:1 감사 추적(Audit Trail), 공정 PPM 지수, 파레토(Pareto) 우선순위, 5-Why 근본원인 및 8D CAPA 대책을 도출했습니다.{ceo_override_block}\n\n"
+                f"• 핵심 판정 요약: 첨부된 품질 데이터의 전체 행(Row)을 파이썬 결정론적 연산 엔진으로 100% 전수 분석하여 원본 행 번호(#Row)·LOT번호 1:1 감사 추적(Audit Trail), 공정 PPM 지수, Real SPC 공정능력(평균·표준편차 σ·Cp·Cpk·규격 여유도), 파레토(Pareto) 우선순위, 5-Why 근본원인 및 8D CAPA 대책을 도출했습니다.{ceo_override_block}\n\n"
                 f"{h2}\n{sec2_bullets}\n\n"
                 f"{h3}\n{sec3_bullets}\n\n"
                 f"{h4}\n"

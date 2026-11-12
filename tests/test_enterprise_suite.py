@@ -206,6 +206,88 @@ def run_all_tests():
     assert "🌐 [데이터 출처: 실시간 멀티 소스 지식 수집 모드 (Live Web & Knowledge Synthesis)] 공식 문서 및 최신 뉴스 피드 교차 검증 완료" in hr_report
     print("✔ [기둥 7 통과] samples/ 현업 시연 파일 2종, 데이터 출처 투명성 배지 3단 분기(실데이터 vs QA시뮬레이션 vs 실시간 지식수집), 3단 SOP 보완 템플릿 및 의료기기 RA 실무 디테일 검증 완료")
 
+    # Test 8: Real SPC(σ·Cp·Cpk) 수학 연산 정밀도 검증 — Python statistics 독립 계산값과 1e-4 이내 일치
+    import math as _math
+    import statistics as _stats
+    from backend.file_processor import compute_spc_capability, parse_spec_limits
+
+    assert parse_spec_limits("15.0±0.5") == (14.5, 15.5)
+    assert parse_spec_limits("100이하") == (None, 100.0)
+    assert parse_spec_limits("120이상") == (120.0, None)
+
+    spc_vals = [15.10, 15.30, 15.25, 15.35, 15.20, 15.40]
+    cap = compute_spc_capability(spc_vals, 14.5, 15.5)
+    exp_mean = _stats.fmean(spc_vals)
+    exp_sigma = _stats.stdev(spc_vals)
+    exp_cp = (15.5 - 14.5) / (6 * exp_sigma)
+    exp_cpk = min((15.5 - exp_mean) / (3 * exp_sigma), (exp_mean - 14.5) / (3 * exp_sigma))
+    assert _math.isclose(cap["sigma"], exp_sigma, abs_tol=1e-9)
+    assert _math.isclose(cap["cp"], exp_cp, abs_tol=1e-4) and _math.isclose(cap["cpk"], exp_cpk, abs_tol=1e-4)
+    assert cap["cp"] > 1.33 and cap["cpk"] < 1.33, "상한 쏠림 시 Cp는 충분하나 Cpk는 미달해야 함"
+
+    # 전 LOT 규격 내 합격이지만 상한 쏠림(Cpk < 1.33)인 성적서 ➔ 잠재 산포 리스크 경고 검출
+    spc_csv = "검사일자,LOT번호,품목명,협력사명,검사항목,기준규격(Spec),실측측정값\n" + "\n".join(
+        f"2026-11-11,LOT-SPC-{i+1:03d},커넥터 핀,(주)정밀부품,도금두께,15.0±0.5,{v}μm" for i, v in enumerate(spc_vals)
+    )
+    spc_summary, spc_meta = parse_uploaded_document("SPC_산포검증.csv", spc_csv.encode("utf-8"))
+    assert spc_meta["fail_count"] == 0 and spc_meta["pass_count"] == 6
+    assert spc_meta["spc"][0]["n"] == 6 and _math.isclose(spc_meta["spc"][0]["cpk"], round(exp_cpk, 4), abs_tol=1e-4)
+    assert "[Real SPC 공정능력 분석 (σ·Cp·Cpk 수학 연산)]" in spc_summary
+    assert f"⚠️ [잠재 산포 리스크 경고] 커넥터 핀-도금두께" in spc_summary
+    assert f"현재 규격 내 합격이나 공정능력 부족(Cpk={exp_cpk:.2f} < 1.33)으로 대량 불량 발생 위험" in spc_summary
+    assert "Warning Zone" in spc_summary  # 15.40 → 상한 경계 10% 이내
+
+    spc_report = build_comprehensive_5section_report(
+        "첨부한 'SPC_산포검증.csv' 파일의 핵심 수치와 불량률을 분석해줘",
+        f"[업로드된 첨부파일 전수 연산 데이터]\n{spc_summary}",
+        {"id": "sup-qa-01", "name": "임승현 팀장", "dept": "품질보증·QA팀"},
+        {"id": "wrk-qa-01", "name": "한도윤 수석", "dept": "품질보증·QA팀"},
+        {"id": "wrk-qa-02", "name": "장지우 책임", "dept": "품질보증·QA팀"},
+    )
+    sec2 = spc_report.split("📌 2.")[1].split("📌 3.")[0]
+    sec3 = spc_report.split("📌 3.")[1].split("📌 4.")[0]
+    assert "⚠️ [잠재 산포 리스크 경고]" in sec2 and "⚠️ [잠재 산포 리스크 경고]" in sec3
+    assert "Cpk=" in sec2
+    print(f"✔ [기둥 8 통과] Real SPC 수학 연산(σ={exp_sigma:.4f}, Cp={exp_cp:.2f}, Cpk={exp_cpk:.2f}) 및 규격 내 합격 LOT 잠재 산포 리스크 경고(SECTION 02·03) 검증 완료")
+
+    # Test 9: 부정어 문맥 필터(Negation Filter) & 구조적 증빙 정규식 검증
+    neg_doc = (
+        "문서번호: SOP-QA-101 / 개정번호: Rev.2 / 승인권자: 품질보증팀장 / 개정이력 관리 / 기록 보존기한: 출하 후 5년 보관.\n"
+        "멸균 공정 밸리데이션 절차 없음. IQ/OQ/PQ 적격성 평가는 추후 수립 예정이다.\n"
+        "의료기기 파일(MDF), 제품사양, 도면, 제조공정 모니터링 작업표준 규격을 관리한다.\n"
+    )
+    neg_audit = evaluate_iso_compliance(neg_doc, "ISO 13485 SOP 심사")
+    val_line = next(l for l in neg_audit.splitlines() if l.startswith("• [ISO 13485 7.5.6"))
+    assert "🚨 부적합/보완필요(Gap) — 부정/미수립 문맥 검출" in val_line and "✅" not in val_line
+    assert "밸리데이션 절차 없음" in val_line
+    doc_line = next(l for l in neg_audit.splitlines() if l.startswith("• [ISO 13485 4.2.4"))
+    assert "✅ 적합(Compliant)" in doc_line and "Rev.N" in doc_line and "보존기한(N년)" in doc_line
+    assert "부정/미수립 문맥 검출" in neg_audit.splitlines()[0]
+
+    # 구조적 증빙 미검출: 키워드는 있지만 문서번호/Rev 포맷과 보존기한(N년) 증빙이 없는 경우 Gap
+    weak_doc = (
+        "본 절차서의 문서번호와 개정번호는 담당자가 관리하며 승인권자 결재 및 개정이력을 남긴다. "
+        "품질 기록은 적절한 기간 동안 보관기간을 정해 관리한다. 의료기기 제조 공정 전반에 적용한다."
+    )
+    weak_audit = evaluate_iso_compliance(weak_doc, "ISO 13485 SOP 심사")
+    weak_line = next(l for l in weak_audit.splitlines() if l.startswith("• [ISO 13485 4.2.4"))
+    assert "구조적 증빙 미검출" in weak_line and "보존기한(N년)" in weak_line
+
+    # 샘플 SOP: 의도적으로 '두지 않는다'/'수행하지 않는다'로 기술된 밸리데이션·위험산정 조항이 부정 문맥으로 Gap 판정
+    with open("samples/의료기기_멸균포장_SOP_초안.txt", "rb") as f:
+        sop_summary2, _ = parse_uploaded_document("의료기기_멸균포장_SOP_초안.txt", f.read())
+    for prefix in ("• [ISO 13485 7.5.6", "• [ISO 14971 5.2"):
+        ln = next(l for l in sop_summary2.splitlines() if l.startswith(prefix))
+        assert "부정/미수립 문맥 검출" in ln, f"{prefix} 부정 문맥 미검출"
+
+    # Test 10: 전자결재 대표 반려(Reject & Re-run) 지시 분리
+    from backend.workflow import split_ceo_reject_directives
+    core_p, reasons = split_ceo_reject_directives(
+        "월간 불량률 CAPA 보고서 작성해줘 [↩️ 대표 결재 반려 보완지시 #1: 협력사 Cpk 산포 개선 대책을 더 구체적으로 추가해]"
+    )
+    assert core_p == "월간 불량률 CAPA 보고서 작성해줘" and reasons == ["협력사 Cpk 산포 개선 대책을 더 구체적으로 추가해"]
+    print("✔ [기둥 9 통과] 부정어 문맥 필터('밸리데이션 절차 없음' ➔ Gap), 구조적 증빙 정규식(Rev.N·보존기한 N년), 대표 반려 재가동 지시 분리 검증 완료")
+
     print("=================================================================")
     print("🎉 [최종 감사 결과: 전 기술 기둥 & 다중 규격 레지스트리 100% 통과 (결함 0건)]")
     print("=================================================================")

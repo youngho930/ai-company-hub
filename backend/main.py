@@ -18,7 +18,7 @@ if sys.platform == "win32":
 load_dotenv(override=True)
 
 from backend.hr_router import assemble_team
-from backend.workflow import build_company_graph, MissionState
+from backend.workflow import build_company_graph, MissionState, split_ceo_reject_directives
 from backend.file_processor import parse_uploaded_document
 from backend.report_exporter import build_docx_bytes, build_xlsx_bytes
 from backend.db_store import (
@@ -254,9 +254,13 @@ async def stream_mission(
 
             clear_live_instructions(session_id)
             force_refresh, cleaned_prompt = is_force_refresh_prompt(prompt, session_id)
-            cached_record = await asyncio.to_thread(find_cached_mission, prompt, attached_name, session_id)
+            # [전자결재 대표 반려 & 재가동] 결합된 반려 사유를 원 안건과 분리 (라우팅은 원 안건 기준)
+            core_prompt, reject_reasons = split_ceo_reject_directives(cleaned_prompt)
+            cached_record = None
+            if not reject_reasons:
+                cached_record = await asyncio.to_thread(find_cached_mission, prompt, attached_name, session_id)
 
-            selection, nodes, edges, emp_map = await asyncio.to_thread(assemble_team, cleaned_prompt, sup_id, w_list)
+            selection, nodes, edges, emp_map = await asyncio.to_thread(assemble_team, core_prompt, sup_id, w_list)
             sup_info = emp_map[selection.supervisor_id]
             worker_names = ", ".join([emp_map[w.agent_id]["name"] for w in selection.workers])
             w1_info = emp_map[selection.workers[0].agent_id]
@@ -331,9 +335,21 @@ async def stream_mission(
             })
 
             enriched = [{**emp_map[w.agent_id], "sub_task": w.sub_task} for w in selection.workers]
-            effective_prompt = cleaned_prompt
+            effective_prompt = core_prompt
             if attached_name and attached_summary:
-                effective_prompt = f"{cleaned_prompt} (첨부파일 '{attached_name}' 전수 통계 반영)"
+                effective_prompt = f"{core_prompt} (첨부파일 '{attached_name}' 전수 통계 반영)"
+
+            reject_notes = [f"↩️ [대표 결재 반려 보완지시] {r}" for r in reject_reasons]
+            if reject_notes:
+                await event_queue.put({
+                    "type": "CEO_LIVE_INTERVENTION", "agentId": sup_info["id"], "agentName": sup_info["name"],
+                    "role": "SUPERVISOR", "timestamp": datetime.now().strftime("%H:%M:%S"),
+                    "payload": {
+                        "status": "REJECTED",
+                        "text": f"↩️ [대표 결재 반려 접수] \"{reject_reasons[-1]}\" ➔ {sup_info['dept']} 전담팀이 보완 지시를 반영해 보고서를 재작성합니다!",
+                        "instruction": reject_reasons[-1],
+                    },
+                })
 
             init_state: MissionState = {
                 "ceo_prompt": effective_prompt,
@@ -346,7 +362,7 @@ async def stream_mission(
                 "qc_feedback": None,
                 "reject_count": 0,
                 "rework_query": None,
-                "live_ceo_notes": [],
+                "live_ceo_notes": reject_notes,
                 "final_report": None,
             }
             final_state = await company_graph.ainvoke(init_state, config={"configurable": {

@@ -1,6 +1,8 @@
 import io
 import csv
 import re
+import math
+import statistics
 from typing import Tuple, Optional
 from backend.db_store import set_session_table, scrub_pii_and_secrets
 
@@ -59,7 +61,7 @@ COMPLIANCE_STANDARDS_REGISTRY: dict[str, dict] = {
             {
                 "clause": "ISO 13485 7.5.6 (공정 밸리데이션 & 멸균 밸리데이션 ISO 11135/11137 연계)",
                 "title": "특수 공정 IQ/OQ/PQ 적격성 평가, 멸균 밸리데이션(ISO 11135/11137) 및 공정능력(Cpk >= 1.33 / Ppk >= 1.67) 판정 기준 누락",
-                "keywords": ["밸리데이션", "validation", "iq", "oq", "pq", "적격성", "공정능력", "cpk", "재밸리데이션", "11135", "11137"],
+                "keywords": ["밸리데이션", "validation", "iq", "oq", "pq", "적격성", "공정능력", "cpk", "재밸리데이션", "11135", "11137", "설비 검증", "검증 프로토콜"],
                 "remediation": "결과를 전수 검증할 수 없는 특수 공정(EO 멸균 ISO 11135, 감마선 멸균 ISO 11137, 실링 ISO 11607)에 대해 IQ/OQ/PQ 프로토콜 번호와 공정능력지수(초기 Ppk >= 1.67, 양산 Cpk >= 1.33) 판정 기준 및 연 1회 정기 재밸리데이션 주기를 규정하세요.",
                 "template_snippet": "멸균(ISO 11135 EO가스 / ISO 11137 방사선) 및 파우치 열밀봉(실링) 특수 공정은 양산 전 IQ(설치)·OQ(운전)·PQ(성능) 적격성 평가를 완료해야 하며, 핵심 파라미터(온도·압력·밀봉강도)는 초기 Ppk >= 1.67, 양산 Cpk >= 1.33 이상을 유지하고 연 1회 정기 재밸리데이션을 수행한다.",
             },
@@ -86,7 +88,7 @@ COMPLIANCE_STANDARDS_REGISTRY: dict[str, dict] = {
             {
                 "clause": "ISO 14971 5.2~5.5 (위해요인 식별 및 위험 산정 RPN)",
                 "title": "정상·고장 상태 위해요인(Hazard) 식별 및 심각도(S)×발생빈도(O) 위험 매트릭스 산정 누락",
-                "keywords": ["위해요인", "hazard", "심각도", "발생빈도", "rpn", "위험산정", "매트릭스"],
+                "keywords": ["위해요인", "hazard", "심각도", "발생빈도", "rpn", "위험산정", "매트릭스", "위험도"],
                 "remediation": "식약처 기술문서 심사 첨부자료 요건에 맞춰 생물학적·전기적·기계적·멸균실패·사용오류 위해요인(Hazard)을 전수 도출하고, 심각도(S 1~5등급)와 발생가능성(O 1~5등급) 매트릭스로 초기 위험도(RPN)를 산정하세요.",
                 "template_snippet": "당사 의료기기의 정상 및 단일고장 상태에서 발생 가능한 위해요인(생물학적 오염, 포장 파손, 방사선/EO 잔류물 등)을 식별하고, 위험관리계획서(RMP)의 심각도(S)×발생빈도(O) 5×5 매트릭스에 따라 RPN 점수를 정량 산정한다.",
             },
@@ -309,6 +311,67 @@ def is_compliance_audit_request(text: str, prompt: str = "") -> bool:
     return len(reg_stds) > 0 or len(unreg_stds) > 0
 
 
+# =====================================================================
+# [규격 심사 문맥 부정어 필터 (Negation Filter)]
+# 키워드가 존재하더라도 같은 문장 안에 결여·미수립 표현이 있으면 '적합' 판정을 뒤집는다.
+# =====================================================================
+NEGATION_MARKERS: list[str] = [
+    "없음", "없다", "없습니다", "미수립", "생략", "미실시", "제외", "누락", "추후",
+    "미작성", "안 함", "안함", "하지 않", "두지 않", "않는다", "않음", "미적용", "미정",
+]
+
+# [구조적·정량적 증빙 정규식 (Structural Evidence Patterns)]
+# 조항 유형별로 '실제 문서에 있어야 할 증빙 포맷'을 정규식으로 검증한다.
+STRUCTURAL_EVIDENCE_RULES: list[dict] = [
+    {
+        "clause_markers": ["4.2.4", "9001 7.5", "제1영역"],
+        "label": "문서번호/개정번호 포맷(SOP-xxx · Rev.N)",
+        "pattern": r"(rev\.?\s*\d+|sop-[a-z0-9]+|[a-z]{2,5}-[a-z]{0,4}-?\d{2,4})",
+    },
+    {
+        "clause_markers": ["4.2.4"],
+        "label": "기록 보존기한(N년)",
+        "pattern": r"((보존|보관)[^\n]{0,30}?\d+\s*년|\d+\s*년[^\n]{0,12}(보존|보관))",
+    },
+    {
+        "clause_markers": ["14971 5.2"],
+        "label": "위험 산정 정량 지표(RPN · 심각도)",
+        "pattern": r"(rpn|심각도|severity)",
+    },
+    {
+        "clause_markers": ["7.5.6", "Core Tool 5"],
+        "label": "공정능력 판정 기준값(Cpk 1.33 · Ppk 1.67)",
+        "pattern": r"(1\.33|1\.67)",
+    },
+]
+
+
+def _split_sentences(text: str) -> list[str]:
+    raw = re.split(r"(?:\r?\n)+|(?<=[.!?。])\s+", text or "")
+    return [s.strip() for s in raw if s and s.strip()]
+
+
+def _find_negated_evidence(sentences: list[str], keywords: list[str]) -> Optional[str]:
+    """키워드가 포함된 문장 중 부정/결여 표현이 함께 존재하는 첫 문장을 반환한다."""
+    for sent in sentences:
+        low = sent.lower()
+        if any(kw in low for kw in keywords) and any(neg in low for neg in NEGATION_MARKERS):
+            return sent
+    return None
+
+
+def _check_structural_evidence(clause_name: str, doc_text_lower: str) -> Tuple[list[str], list[str]]:
+    """조항에 해당하는 구조적 증빙 패턴의 (충족 라벨, 미충족 라벨) 목록을 반환한다."""
+    found, missing = [], []
+    for rule in STRUCTURAL_EVIDENCE_RULES:
+        if any(marker in clause_name for marker in rule["clause_markers"]):
+            if re.search(rule["pattern"], doc_text_lower, flags=re.I):
+                found.append(rule["label"])
+            else:
+                missing.append(rule["label"])
+    return found, missing
+
+
 def evaluate_iso_compliance(text: str, prompt: str = "", crawled_knowledge: str = "") -> str:
     """
     [확장형 다중 규격 레지스트리(Multi-Standard Compliance Registry) & 동적 폴백 심사 엔진]
@@ -371,14 +434,43 @@ def evaluate_iso_compliance(text: str, prompt: str = "", crawled_knowledge: str 
     pass_clauses = []
     gap_clauses = []
     clause_lines = []
+    negation_hit_count = 0
+
+    doc_text_lower = (text or "").lower()
+    doc_sentences = _split_sentences(text or "")
 
     for idx, c in enumerate(active_clauses, start=1):
         matched_kws = [kw for kw in c["keywords"] if kw in combined]
-        if has_actual_doc and len(matched_kws) >= 2:
+
+        # ① 부정어 문맥 필터: 키워드가 있어도 같은 문장에 '없음/미수립/생략/누락/추후...'가 있으면 즉시 Gap
+        negated_sent = _find_negated_evidence(doc_sentences, c["keywords"])
+        if negated_sent:
+            negation_hit_count += 1
+            gap_clauses.append(c)
+            neg_excerpt = re.sub(r"^[-•*·\s]+", "", re.sub(r"\s+", " ", negated_sent)).strip()[:70]
+            clause_lines.append(
+                f"• [{c['clause']} — 🚨 부적합/보완필요(Gap) — 부정/미수립 문맥 검출] ➔ "
+                f"[부정·결여 표현 원문]: \"{neg_excerpt}\" ➔ [문서 내 누락된 필수 요구사항]: {c['title']}"
+            )
+            continue
+
+        # ② 구조적·정량적 증빙 정규식 검증 (실제 문서가 첨부된 경우)
+        evidence_found, evidence_missing = ([], [])
+        if has_actual_doc:
+            evidence_found, evidence_missing = _check_structural_evidence(c["clause"], doc_text_lower)
+
+        if has_actual_doc and len(matched_kws) >= 2 and not evidence_missing:
             status = "✅ 적합(Compliant)"
             pass_clauses.append(c)
+            evidence_note = f" [정량 증빙 확인: {' · '.join(evidence_found)}]" if evidence_found else ""
             clause_lines.append(
-                f"• [{c['clause']} — {status}]: 필수 요구사항이 문서 내에 명확히 정의되어 심사 기준을 충족합니다."
+                f"• [{c['clause']} — {status}]: 필수 요구사항이 문서 내에 명확히 정의되어 심사 기준을 충족합니다.{evidence_note}"
+            )
+        elif has_actual_doc and len(matched_kws) >= 2 and evidence_missing:
+            status = "🚨 부적합/보완필요(Gap) — 구조적 증빙 미검출"
+            gap_clauses.append(c)
+            clause_lines.append(
+                f"• [{c['clause']} — {status}] ➔ [필수 증빙 포맷 누락]: {' · '.join(evidence_missing)} ➔ [문서 내 누락된 필수 요구사항]: {c['title']}"
             )
         elif not has_actual_doc and idx == 1 and len(matched_kws) >= 1:
             status = "✅ 적합(기준 확인)"
@@ -399,9 +491,10 @@ def evaluate_iso_compliance(text: str, prompt: str = "", crawled_knowledge: str 
     compliance_score = round((pass_c / max(1, total_c)) * 100, 1)
 
     std_banner = " · ".join(matched_stds + unregistered_stds)
+    negation_note = f" | 부정/미수립 문맥 검출 {negation_hit_count}건" if negation_hit_count else ""
     header_summary = (
         f"• [규격 적합성 정량 진단 요약 ({std_banner})]: 총 {total_c}개 필수 조항 점검 결과 "
-        f"적합 {pass_c}건, 보완필요(Gap) {gap_c}건 (현재 규격 부합도 {compliance_score}%)."
+        f"적합 {pass_c}건, 보완필요(Gap) {gap_c}건 (현재 규격 부합도 {compliance_score}%){negation_note}."
     )
 
     guide_lines = []
@@ -479,6 +572,94 @@ def find_header_row_index(rows: list[list[str]]) -> int:
     return best_idx
 
 
+def parse_spec_limits(spec_str: str) -> Tuple[Optional[float], Optional[float]]:
+    """
+    기준규격 문자열에서 (LSL, USL)을 추출한다.
+    예) '15.0±0.5' -> (14.5, 15.5) / '24.0~24.4' -> (24.0, 24.4) / '120이상' -> (120, None) / '100이하' -> (None, 100)
+    """
+    s = str(spec_str or "").strip()
+    if not s:
+        return None, None
+    m_tol = re.search(r"(\d+(?:\.\d+)?)\s*(?:±|\+\-|\+/-)\s*(\d+(?:\.\d+)?)", s)
+    if m_tol:
+        target, tol = float(m_tol.group(1)), float(m_tol.group(2))
+        return round(target - tol, 6), round(target + tol, 6)
+    m_range = re.search(r"(\d+(?:\.\d+)?)\s*(?:~|\-)\s*(\d+(?:\.\d+)?)", s)
+    if m_range:
+        low, high = float(m_range.group(1)), float(m_range.group(2))
+        return min(low, high), max(low, high)
+    m_min = re.search(r"(?:>=|이상|min)\s*(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s*(?:이상|min|\+)", s, flags=re.I)
+    if m_min:
+        return float(m_min.group(1) or m_min.group(2)), None
+    m_max = re.search(r"(?:<=|이하|미만|max|<)\s*(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s*(?:이하|미만|max)", s, flags=re.I)
+    if m_max:
+        return None, float(m_max.group(1) or m_max.group(2))
+    return None, None
+
+
+def _parse_measured_number(val_str: str) -> Optional[float]:
+    clean_val = re.sub(r"[,%\sA-Za-zμmMPap]+", "", str(val_str or ""))
+    if re.match(r"^[+-]?\d+(?:\.\d+)?$", clean_val):
+        return float(clean_val)
+    return None
+
+
+def compute_spc_capability(values: list[float], lsl: Optional[float], usl: Optional[float]) -> dict:
+    """
+    [Real SPC 통계적 공정관리 수학 연산]
+    - 평균(Mean), 표본 표준편차(σ, statistics.stdev)
+    - Cp  = (USL - LSL) / (6σ)                       (양측 규격일 때만)
+    - Cpk = min((USL - Mean) / 3σ, (Mean - LSL) / 3σ) (단측 규격이면 존재하는 쪽만 사용)
+    - 규격 여유도(Margin %) = 가장 가까운 규격 한계까지의 거리 / 공차폭(양측) 또는 한계값(단측)
+    """
+    n = len(values)
+    mean = statistics.fmean(values) if n else float("nan")
+    sigma = statistics.stdev(values) if n >= 2 else None
+    cp: Optional[float] = None
+    cpk: Optional[float] = None
+
+    if sigma is not None and sigma > 0:
+        if lsl is not None and usl is not None:
+            cp = (usl - lsl) / (6 * sigma)
+        sides = []
+        if usl is not None:
+            sides.append((usl - mean) / (3 * sigma))
+        if lsl is not None:
+            sides.append((mean - lsl) / (3 * sigma))
+        cpk = min(sides) if sides else None
+    elif sigma == 0 and n >= 2:
+        cp = math.inf if (lsl is not None and usl is not None) else None
+        cpk = math.inf
+
+    # 측정값별 규격 여유도(%) — 경계 15% 이내면 Warning Zone
+    margins: list[float] = []
+    for v in values:
+        if lsl is not None and usl is not None and usl > lsl:
+            margins.append(min(usl - v, v - lsl) / (usl - lsl) * 100)
+        elif usl is not None and usl != 0:
+            margins.append((usl - v) / abs(usl) * 100)
+        elif lsl is not None and lsl != 0:
+            margins.append((v - lsl) / abs(lsl) * 100)
+
+    return {
+        "n": n,
+        "mean": mean,
+        "sigma": sigma,
+        "cp": cp,
+        "cpk": cpk,
+        "margins": margins,
+        "min_margin": min(margins) if margins else None,
+    }
+
+
+def _fmt_index(v: Optional[float]) -> str:
+    if v is None:
+        return "N/A"
+    if math.isinf(v):
+        return "∞"
+    return f"{v:.2f}"
+
+
 def _analyze_tabular_rows(filename: str, all_clean_rows: list[list[str]], session_id: str = "default") -> Tuple[str, dict]:
     h_idx = find_header_row_index(all_clean_rows)
     headers = all_clean_rows[h_idx]
@@ -495,6 +676,7 @@ def _analyze_tabular_rows(filename: str, all_clean_rows: list[list[str]], sessio
     item_metric_list: list[str] = []
     deviation_vals: list[float] = []
     structured_export_rows: list[list[str]] = []
+    spc_groups: dict[tuple, dict] = {}
 
     judge_idx = -1
     lot_idx = -1
@@ -605,6 +787,21 @@ def _analyze_tabular_rows(filename: str, all_clean_rows: list[list[str]], sessio
         else:
             pass_details.append(f"• [데이터 행 #{r_num}행]: {row_str_join}.")
 
+        # [Real SPC] 공차 규격이 있는 수치형 검사항목을 (품목, 검사항목, 규격) 단위로 그룹핑
+        if (0 <= spec_idx < len(masked_row)) and (0 <= val_idx < len(masked_row)):
+            g_lsl, g_usl = parse_spec_limits(masked_row[spec_idx])
+            g_val = _parse_measured_number(masked_row[val_idx])
+            if g_val is not None and (g_lsl is not None or g_usl is not None):
+                g_key = (item_name, check_name, spec_val)
+                grp = spc_groups.setdefault(g_key, {
+                    "item": item_name, "check": check_name, "spec": spec_val,
+                    "lsl": g_lsl, "usl": g_usl, "values": [], "rows": [], "fail": 0,
+                })
+                grp["values"].append(g_val)
+                grp["rows"].append({"row": r_num, "lot": lot_val, "measured": measured_val, "value": g_val, "pass": bool(is_pass and not is_fail)})
+                if is_fail:
+                    grp["fail"] += 1
+
         if 0 <= val_idx < len(masked_row) and masked_row[val_idx]:
             p_name = masked_row[item_idx] if (0 <= item_idx < len(masked_row)) else f"행{r_num}"
             c_name = masked_row[check_idx] if (0 <= check_idx < len(masked_row)) else headers[val_idx]
@@ -668,6 +865,80 @@ def _analyze_tabular_rows(filename: str, all_clean_rows: list[list[str]], sessio
             dev_stat_str = f" | 규격 대비 편차(오차) 분포[최소 {min_dev:+.1f} ~ 최대 {max_dev:+.1f}, 평균 절대편차 {avg_abs_dev}]"
         lines.append(f"• [항목별 실측치(단위별 분리) 및 편차 분석]: {', '.join(item_metric_list[:6])}{dev_stat_str}.")
 
+    # =================================================================
+    # [Real SPC: 표준편차 σ · Cp · Cpk · 규격 여유도 정밀 연산 + 잠재 산포 리스크 경고]
+    # =================================================================
+    spc_meta: list[dict] = []
+    spc_warning_lines: list[str] = []
+    spc_parts: list[str] = []
+
+    def _g(x: Optional[float]) -> str:
+        return "-" if x is None else f"{x:g}"
+
+    for grp in spc_groups.values():
+        cap = compute_spc_capability(grp["values"], grp["lsl"], grp["usl"])
+        label = f"{grp['item']}-{grp['check']}"
+        limit_str = f"LSL {_g(grp['lsl'])} / USL {_g(grp['usl'])}"
+        min_margin = cap["min_margin"]
+        margin_str = f"{min_margin:.1f}%" if min_margin is not None else "N/A"
+
+        if cap["n"] >= 2 and cap["sigma"] is not None:
+            cpk_v = cap["cpk"]
+            if cpk_v is None:
+                verdict = "판정 보류"
+            elif cpk_v >= 1.67:
+                verdict = "🟢 공정능력 우수(Cpk ≥ 1.67)"
+            elif cpk_v >= 1.33:
+                verdict = "🟢 공정능력 적정(Cpk ≥ 1.33)"
+            else:
+                verdict = "🚨 공정능력 부족(Cpk < 1.33)"
+            spc_parts.append(
+                f"{label}(n={cap['n']}, {limit_str}): 평균 {cap['mean']:.4f}, σ={cap['sigma']:.4f}, "
+                f"Cp={_fmt_index(cap['cp'])}, Cpk={_fmt_index(cpk_v)}, 최소 규격 여유도 {margin_str} ➔ {verdict}"
+            )
+            if cpk_v is not None and not math.isinf(cpk_v) and cpk_v < 1.33:
+                if grp["fail"] == 0:
+                    spc_warning_lines.append(
+                        f"• ⚠️ [잠재 산포 리스크 경고] {label} (n={cap['n']}, σ={cap['sigma']:.4f}, Cp={_fmt_index(cap['cp'])}): "
+                        f"현재 규격 내 합격이나 공정능력 부족(Cpk={cpk_v:.2f} < 1.33)으로 대량 불량 발생 위험"
+                    )
+                else:
+                    spc_warning_lines.append(
+                        f"• ⚠️ [잠재 산포 리스크 경고] {label} (n={cap['n']}, σ={cap['sigma']:.4f}, Cp={_fmt_index(cap['cp'])}): "
+                        f"규격 이탈 {grp['fail']}건 포함 · 공정능력 부족(Cpk={cpk_v:.2f} < 1.33)으로 대량 불량 발생 위험"
+                    )
+        else:
+            spc_parts.append(
+                f"{label}(n={cap['n']}, {limit_str}): 실측 {cap['mean']:g}, σ 산출 불가(단일 표본) · 규격 여유도 {margin_str}"
+            )
+
+        # 개별 합격 LOT의 Warning Zone(규격 경계 15% 이내) 탐지
+        for r_info, m in zip(grp["rows"], cap["margins"]):
+            if r_info["pass"] and 0 <= m <= 15.0:
+                spc_warning_lines.append(
+                    f"• ⚠️ [잠재 산포 리스크 경고] [원본 #{r_info['row']}행 | {r_info['lot']}] {label}: "
+                    f"현재 규격 내 합격이나 실측값 '{r_info['measured']}'이(가) 규격 경계 15% 이내 Warning Zone(규격 여유도 {m:.1f}%)에 위치하여 대량 불량 발생 위험"
+                )
+
+        spc_meta.append({
+            "item": grp["item"],
+            "check": grp["check"],
+            "spec": grp["spec"],
+            "lsl": grp["lsl"],
+            "usl": grp["usl"],
+            "n": cap["n"],
+            "mean": round(cap["mean"], 6),
+            "sigma": round(cap["sigma"], 6) if cap["sigma"] is not None else None,
+            "cp": (round(cap["cp"], 4) if cap["cp"] is not None and not math.isinf(cap["cp"]) else cap["cp"]),
+            "cpk": (round(cap["cpk"], 4) if cap["cpk"] is not None and not math.isinf(cap["cpk"]) else cap["cpk"]),
+            "min_margin_pct": round(min_margin, 2) if min_margin is not None else None,
+        })
+
+    if spc_parts:
+        lines.append(f"• [Real SPC 공정능력 분석 (σ·Cp·Cpk 수학 연산)]: {' | '.join(spc_parts[:8])}.")
+    if spc_warning_lines:
+        lines.extend(spc_warning_lines[:8])
+
     if failed_items_records:
         top_fail = failed_items_records[0]
         lines.append(
@@ -698,6 +969,8 @@ def _analyze_tabular_rows(filename: str, all_clean_rows: list[list[str]], sessio
         "fail_count": fail_count,
         "defect_rate": defect_rate,
         "ppm": ppm_val,
+        "spc": spc_meta,
+        "spc_warning_count": len(spc_warning_lines),
     }
     return "\n".join(lines), meta
 

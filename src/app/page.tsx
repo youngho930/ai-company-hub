@@ -80,6 +80,334 @@ function parseReportIntoCards(raw: string): { bannerNote: string; sections: Pars
   return { bannerNote, sections };
 }
 
+// =====================================================================
+// [전자결재 보고서 인포그래픽 렌더러]
+// 줄글 불릿을 상태 배지(Pill) · 파레토 게이지 바 · LOT 감사추적 그리드 · SPC 공정능력 테이블로 자동 변환
+// =====================================================================
+type BulletTone = 'pass' | 'fail' | 'warn' | 'rawProv' | 'simProv' | 'webProv' | 'ceo' | 'neutral';
+
+const TONE_STYLES: Record<BulletTone, { box: string; pill: string; label: string }> = {
+  pass: { box: 'bg-emerald-50/70 border-emerald-300', pill: 'bg-emerald-600 text-white border-emerald-700', label: '✅ 적합' },
+  fail: { box: 'bg-rose-50/80 border-rose-300', pill: 'bg-rose-600 text-white border-rose-700', label: '🚨 부적합/Gap' },
+  warn: { box: 'bg-amber-50/90 border-amber-300', pill: 'bg-amber-500 text-slate-950 border-amber-600', label: '⚠️ 산포 경고' },
+  rawProv: { box: 'bg-emerald-50/95 border-emerald-400', pill: 'bg-emerald-700 text-white border-emerald-800', label: '📊 실데이터' },
+  simProv: { box: 'bg-sky-50/95 border-sky-400', pill: 'bg-sky-700 text-white border-sky-800', label: '🧪 표준 시뮬레이션' },
+  webProv: { box: 'bg-indigo-50/95 border-indigo-400', pill: 'bg-indigo-700 text-white border-indigo-800', label: '🌐 실시간 지식수집' },
+  ceo: { box: 'bg-amber-50/90 border-amber-300', pill: 'bg-slate-900 text-amber-200 border-slate-950', label: '⚡ 대표 지시' },
+  neutral: { box: 'bg-slate-50/95 border-slate-200', pill: '', label: '' },
+};
+
+function classifyBullet(b: string): BulletTone {
+  if (b.includes('📊 [데이터 출처:')) return 'rawProv';
+  if (b.includes('🧪 [데이터 출처:')) return 'simProv';
+  if (b.includes('🌐 [데이터 출처:')) return 'webProv';
+  if (b.includes('⚠️')) return 'warn';
+  if (b.includes('🚨')) return 'fail';
+  if (b.includes('✅')) return 'pass';
+  if (b.includes('⚡') || b.includes('↩️')) return 'ceo';
+  return 'neutral';
+}
+
+function renderEmphasis(text: string, keyPrefix: string) {
+  return text.split(/(\[[^\]]+\])/g).map((seg, i) =>
+    seg.startsWith('[') && seg.endsWith(']') ? (
+      <strong key={`${keyPrefix}-${i}`} className="font-bold text-slate-950">
+        {seg}
+      </strong>
+    ) : (
+      <React.Fragment key={`${keyPrefix}-${i}`}>{seg}</React.Fragment>
+    )
+  );
+}
+
+function StatusPill({ tone, label }: { tone: BulletTone; label?: string }) {
+  const st = TONE_STYLES[tone];
+  if (!st.pill) return null;
+  return (
+    <span className={`shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-[11.5px] font-extrabold border ${st.pill}`}>
+      {label || st.label}
+    </span>
+  );
+}
+
+function GaugeBar({ pct, tone = 'neutral', height = 'h-2.5' }: { pct: number; tone?: 'good' | 'bad' | 'warn' | 'neutral'; height?: string }) {
+  const safe = Math.max(0, Math.min(100, Number.isFinite(pct) ? pct : 0));
+  const color =
+    tone === 'good' ? 'bg-emerald-500' : tone === 'bad' ? 'bg-rose-500' : tone === 'warn' ? 'bg-amber-500' : 'bg-slate-700';
+  return (
+    <div className={`w-full ${height} rounded-full bg-slate-200 overflow-hidden`}>
+      <div className={`${height} ${color} rounded-full transition-all duration-500`} style={{ width: `${safe}%` }} />
+    </div>
+  );
+}
+
+interface ParetoItem {
+  rank: number;
+  label: string;
+  count: number;
+  share: number;
+  cum: number;
+}
+
+function parsePareto(b: string): ParetoItem[] | null {
+  if (!/파레토|pareto/i.test(b)) return null;
+  const items: ParetoItem[] = [];
+  // 형식 A (첨부파일 엔진): "도금두께(고전압 커넥터 단자) 1건(비중 33.3%, 누적 33.3%)"
+  Array.from(b.matchAll(/([^➔:]+?)\s(\d+)건\(비중 ([\d.]+)%, 누적 ([\d.]+)%\)/g)).forEach((m, i) => {
+    items.push({ rank: i + 1, label: m[1].trim(), count: Number(m[2]), share: Number(m[3]), cum: Number(m[4]) });
+  });
+  // 형식 B (표준 시뮬레이션): "1위 치수·도금 두께 공차 이탈(19건, 45.2% / 누적 45.2%)"
+  if (!items.length) {
+    Array.from(b.matchAll(/(\d+)위\s([^(➔]+?)\((\d+)건,\s*([\d.]+)%\s*\/\s*누적\s*([\d.]+)%\)/g)).forEach((m) => {
+      items.push({ rank: Number(m[1]), label: m[2].trim(), count: Number(m[3]), share: Number(m[4]), cum: Number(m[5]) });
+    });
+  }
+  return items.length ? items : null;
+}
+
+interface SpcRow {
+  label: string;
+  n: number;
+  limits: string;
+  mean: string;
+  sigma: string;
+  cp: string;
+  cpk: string;
+  margin: number | null;
+}
+
+function parseSpc(b: string): SpcRow[] | null {
+  if (!b.startsWith('[Real SPC')) return null;
+  const body = b.replace(/^\[[^\]]+\]:\s*/, '').replace(/\.$/, '');
+  const rows: SpcRow[] = [];
+  body.split(' | ').forEach((part) => {
+    const m = part.match(/^(.+?)\(n=(\d+), ([^)]*)\): (.*)$/);
+    if (!m) return;
+    const rest = m[4];
+    const pick = (re: RegExp) => (rest.match(re)?.[1] ?? '-');
+    const marginStr = rest.match(/여유도 (-?[\d.]+)%/)?.[1];
+    rows.push({
+      label: m[1].trim(),
+      n: Number(m[2]),
+      limits: m[3],
+      mean: pick(/(?:평균|실측) ([\d.]+)/),
+      sigma: pick(/σ=([\d.]+)/),
+      cp: pick(/Cp=([\d.∞]+|N\/A)/),
+      cpk: pick(/Cpk=([\d.∞]+|N\/A)/),
+      margin: marginStr !== undefined ? Number(marginStr) : null,
+    });
+  });
+  return rows.length ? rows : null;
+}
+
+function CpkBadge({ value }: { value: string }) {
+  const num = value === '∞' ? Infinity : Number(value);
+  if (!Number.isFinite(num) && value !== '∞') {
+    return <span className="text-slate-500 font-semibold">{value}</span>;
+  }
+  const cls =
+    num >= 1.33
+      ? 'bg-emerald-100 text-emerald-900 border-emerald-400'
+      : num >= 1.0
+      ? 'bg-amber-100 text-amber-900 border-amber-400'
+      : 'bg-rose-100 text-rose-900 border-rose-400';
+  return <span className={`inline-block px-2 py-0.5 rounded-md border font-extrabold tabular-nums ${cls}`}>{value}</span>;
+}
+
+function ReportBulletView({ text, idx }: { text: string; idx: number }) {
+  const tone = classifyBullet(text);
+  const st = TONE_STYLES[tone];
+  const baseBox = `p-3.5 rounded-xl border text-[14.5px] leading-relaxed font-medium text-[#0f172a] antialiased ${st.box}`;
+
+  // 1) 파레토(Pareto) 빈도 분석 ➔ 순위별 게이지 바
+  const pareto = parsePareto(text);
+  if (pareto) {
+    const head = text.match(/^\[([^\]]+)\]/)?.[1] || '파레토(Pareto) 우선순위 분석';
+    return (
+      <div className={`${baseBox} space-y-2.5`}>
+        <div className="flex items-center justify-between gap-2">
+          <strong className="font-extrabold text-slate-950">📊 {head}</strong>
+          <span className="text-[11.5px] font-bold text-slate-600">막대 = 비중 % · 점선 = 누적 %</span>
+        </div>
+        <div className="space-y-2">
+          {pareto.map((p) => {
+            const isVital = p.cum - p.share < 80;
+            return (
+              <div key={`${idx}-p-${p.rank}`} className="grid grid-cols-[28px_minmax(0,1fr)_120px] items-center gap-3">
+                <span
+                  className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-black ${
+                    isVital ? 'bg-rose-600 text-white' : 'bg-slate-300 text-slate-800'
+                  }`}
+                >
+                  {p.rank}
+                </span>
+                <div className="space-y-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2 text-[13.5px]">
+                    <span className="font-bold text-slate-900 truncate">{p.label}</span>
+                    <span className="shrink-0 font-semibold text-slate-700 tabular-nums">{p.count}건</span>
+                  </div>
+                  <div className="relative">
+                    <GaugeBar pct={p.share} tone={isVital ? 'bad' : 'neutral'} />
+                    <div className="absolute top-[-2px] h-[14px] border-l-2 border-dashed border-slate-900/70" style={{ left: `${Math.min(100, p.cum)}%` }} />
+                  </div>
+                </div>
+                <div className="text-right tabular-nums">
+                  <div className="text-[14px] font-extrabold text-slate-950">{p.share}%</div>
+                  <div className="text-[11.5px] font-semibold text-slate-600">누적 {p.cum}%</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // 2) Real SPC 공정능력(σ·Cp·Cpk) ➔ 구조화 테이블
+  const spc = parseSpc(text);
+  if (spc) {
+    return (
+      <div className={`${baseBox} space-y-2`}>
+        <strong className="font-extrabold text-slate-950">📐 Real SPC 공정능력 분석 (σ · Cp · Cpk · 규격 여유도)</strong>
+        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+          <table className="w-full text-[13px]">
+            <thead className="bg-slate-900 text-white">
+              <tr>
+                {['검사항목', 'n', '규격 한계', '평균', 'σ', 'Cp', 'Cpk', '최소 여유도'].map((h) => (
+                  <th key={h} className="px-2.5 py-1.5 text-left font-bold whitespace-nowrap">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {spc.map((r, i) => (
+                <tr key={`${idx}-spc-${i}`} className="border-t border-slate-200 odd:bg-slate-50/70">
+                  <td className="px-2.5 py-1.5 font-bold text-slate-900">{r.label}</td>
+                  <td className="px-2.5 py-1.5 tabular-nums">{r.n}</td>
+                  <td className="px-2.5 py-1.5 whitespace-nowrap text-slate-700">{r.limits}</td>
+                  <td className="px-2.5 py-1.5 tabular-nums">{r.mean}</td>
+                  <td className="px-2.5 py-1.5 tabular-nums">{r.sigma}</td>
+                  <td className="px-2.5 py-1.5"><CpkBadge value={r.cp} /></td>
+                  <td className="px-2.5 py-1.5"><CpkBadge value={r.cpk} /></td>
+                  <td className="px-2.5 py-1.5 min-w-[120px]">
+                    {r.margin === null ? (
+                      <span className="text-slate-500">-</span>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <GaugeBar pct={Math.max(0, r.margin) * 2} tone={r.margin < 0 ? 'bad' : r.margin <= 15 ? 'warn' : 'good'} height="h-2" />
+                        <span className={`tabular-nums font-extrabold ${r.margin < 0 ? 'text-rose-700' : r.margin <= 15 ? 'text-amber-700' : 'text-emerald-700'}`}>
+                          {r.margin}%
+                        </span>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+
+  // 3) LOT별 1:1 감사추적(Audit Trail) ➔ 구조화 그리드 카드
+  const lot = text.match(/^\[원본 #(\d+)행 \| ([^|]+) \| ([^\]]+)\]\s*(.+)$/);
+  if (lot) {
+    const detail = lot[4].match(/^(.+?): 기준규격\(Spec\) '([^']*)' 대비 실측값 '([^']*)' (?:검출|확인) ➔ 판정: (.+?)(?: \((.+)\))?$/);
+    const cells = detail
+      ? [
+          ['원본 행', `#${lot[1]}`],
+          ['LOT', lot[2].trim()],
+          ['품목(협력사)', lot[3].trim()],
+          ['검사항목', detail[1]],
+          ['기준규격', detail[2]],
+          ['실측값', detail[3]],
+          ['편차', (detail[5] || '-').replace(/^.*?:\s*/, '')],
+        ]
+      : null;
+    return (
+      <div className={`${baseBox} space-y-2`}>
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[12px] font-extrabold text-slate-600 tracking-wide">1:1 AUDIT TRAIL</span>
+          <StatusPill tone={tone} label={tone === 'fail' ? '🚨 부적합' : tone === 'pass' ? '✅ 적격(합격)' : undefined} />
+        </div>
+        {cells ? (
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-1.5">
+            {cells.map(([k, v]) => (
+              <div key={`${idx}-${k}`} className="rounded-lg bg-white border border-slate-200 px-2 py-1.5">
+                <div className="text-[10.5px] font-bold text-slate-500">{k}</div>
+                <div className={`text-[13px] font-extrabold break-words ${k === '실측값' && tone === 'fail' ? 'text-rose-700' : 'text-slate-950'}`}>{v}</div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div>{renderEmphasis(text, `lot-${idx}`)}</div>
+        )}
+      </div>
+    );
+  }
+
+  // 4) 조항별 심사 결과 "[조항 — 상태]: 내용" ➔ 상태 배지 카드
+  const clause = text.match(/^\[([^\]]+?) — ([^\]]+)\](?::\s*|\s*➔\s*)(.*)$/);
+  if (clause && (tone === 'pass' || tone === 'fail' || tone === 'warn')) {
+    const extra = clause[2].includes(' — ') ? clause[2].split(' — ').slice(1).join(' — ') : '';
+    return (
+      <div className={`${baseBox} space-y-1.5`}>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <strong className="font-extrabold text-slate-950 text-[14px]">{clause[1]}</strong>
+          <div className="flex items-center gap-1.5">
+            {extra && <span className="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-rose-100 text-rose-900 border border-rose-300">{extra}</span>}
+            <StatusPill tone={tone} />
+          </div>
+        </div>
+        <div className="text-[13.5px] text-slate-800">{renderEmphasis(clause[3], `cl-${idx}`)}</div>
+      </div>
+    );
+  }
+
+  // 5) 일반 불릿 ➔ 상태 배지 + 순위 원형 배지 + 핵심 수치 칩 + 부합도/합격률 게이지
+  const rank = text.match(/\[(\d+)위/)?.[1];
+  const ppmChips = Array.from(text.matchAll(/([\d,]+(?:\.\d+)?)\s?PPM/g)).map((m) => `${m[1]} PPM`);
+  const pctChips = Array.from(text.matchAll(/(\d+(?:\.\d+)?)%/g)).map((m) => `${m[1]}%`);
+  const chips = Array.from(new Set([...ppmChips, ...pctChips])).slice(0, 3);
+  const scoreMatch = text.match(/부합도 ([\d.]+)%/) || text.match(/합격 \d+건 \(([\d.]+)%\)/);
+  const scorePct = scoreMatch ? Number(scoreMatch[1]) : null;
+
+  return (
+    <div className={`${baseBox} space-y-2`}>
+      <div className="flex items-start gap-2.5">
+        {rank ? (
+          <span className="shrink-0 mt-0.5 w-7 h-7 rounded-full bg-slate-900 text-white flex items-center justify-center text-[12px] font-black">{rank}</span>
+        ) : (
+          <span className="text-slate-900 font-extrabold shrink-0 mt-0.5">•</span>
+        )}
+        <span className="flex-1 break-words">{renderEmphasis(text, `b-${idx}`)}</span>
+        <div className="shrink-0 flex flex-col items-end gap-1">
+          <StatusPill tone={tone} />
+          {tone === 'neutral' &&
+            chips.map((c) => (
+              <span key={`${idx}-${c}`} className="px-2 py-0.5 rounded-md bg-slate-900 text-white text-[11.5px] font-extrabold tabular-nums whitespace-nowrap">
+                {c}
+              </span>
+            ))}
+        </div>
+      </div>
+      {scorePct !== null && (
+        <div className="flex items-center gap-2 pl-5">
+          <GaugeBar pct={scorePct} tone={scorePct >= 85 ? 'good' : scorePct >= 60 ? 'warn' : 'bad'} />
+          <span className="shrink-0 text-[12.5px] font-extrabold tabular-nums text-slate-900">{scorePct}%</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const CEO_REJECT_TAG_RE = /\s*\[↩️ 대표 결재 반려 보완지시(?:\s*#\d+)?:\s*([^\]]+)\]/g;
+
+function splitRejectDirectives(p: string): { core: string; reasons: string[] } {
+  const reasons = Array.from(p.matchAll(CEO_REJECT_TAG_RE)).map((m) => m[1].trim());
+  return { core: p.replace(CEO_REJECT_TAG_RE, '').trim(), reasons };
+}
+
 export default function MissionControlPage() {
   const [prompt, setPrompt] = useState(PRESET_SCENARIOS[1].prompt);
   const [liveWhisper, setLiveWhisper] = useState('');
@@ -90,6 +418,9 @@ export default function MissionControlPage() {
   const [leftViewMode, setLeftViewMode] = useState<'PIXEL' | 'GRAPH'>('PIXEL');
   const [isDirOpen, setIsDirOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [approvalStatus, setApprovalStatus] = useState<'PENDING' | 'APPROVED'>('PENDING');
+  const [approvedAt, setApprovedAt] = useState<string>('');
+  const [ceoRejectReason, setCeoRejectReason] = useState<string>('');
   const [isLogDrawerOpen, setIsLogDrawerOpen] = useState(false);
   const [isBrowserDrawerOpen, setIsBrowserDrawerOpen] = useState(false);
   const [isOAuthModalOpen, setIsOAuthModalOpen] = useState(false);
@@ -182,6 +513,12 @@ export default function MissionControlPage() {
       })
       .catch(() => {});
   };
+
+  // 새 보고서가 도착하면 결재 상태를 '대표 결재 대기'로 초기화
+  useEffect(() => {
+    setApprovalStatus('PENDING');
+    setApprovedAt('');
+  }, [finalReport]);
 
   useEffect(() => {
     fetch('/data/employees.json')
@@ -476,6 +813,25 @@ export default function MissionControlPage() {
     }
   };
 
+  // [전자결재 양방향 워크플로우] 최종 승인 확정
+  const handleCeoApprove = () => {
+    setApprovalStatus('APPROVED');
+    setApprovedAt(new Date().toLocaleString('ko-KR', { hour12: false }));
+  };
+
+  // [전자결재 양방향 워크플로우] 반려 사유를 원 안건에 결합하여 전담팀 즉시 재가동(Re-run)
+  const handleCeoReject = () => {
+    const reason = ceoRejectReason.replace(/[\[\]]/g, '').trim();
+    if (!reason) return;
+    const nextNo = splitRejectDirectives(prompt).reasons.length + 1;
+    const nextPrompt = `${prompt.trim()} [↩️ 대표 결재 반려 보완지시 #${nextNo}: ${reason}]`;
+    setIsReportModalOpen(false);
+    setCeoRejectReason('');
+    setApprovalStatus('PENDING');
+    setApprovedAt('');
+    startMission(nextPrompt);
+  };
+
   const handleConfirmManualTeam = (sup: EmployeeProfile, workers: EmployeeProfile[]) => {
     esRef.current?.close();
     resetMission(false);
@@ -522,6 +878,7 @@ export default function MissionControlPage() {
       : currentFrame;
 
   const parsedReport = finalReport ? parseReportIntoCards(finalReport) : { bannerNote: '', sections: [] };
+  const agendaInfo = splitRejectDirectives(prompt);
   const activeSupNode = nodes.find((n) => n.id !== 'ceo' && n.id.startsWith('sup-'));
   const activeWorkerNodes = nodes.filter((n) => n.id.startsWith('wrk-'));
 
@@ -1124,8 +1481,14 @@ export default function MissionControlPage() {
           <div className="bg-slate-900/85 backdrop-blur-2xl border border-white/15 rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden shadow-[0_25px_80px_rgba(0,0,0,0.9)]">
             <div className="flex flex-wrap items-center justify-between gap-2 px-6 py-4 bg-slate-950/80 border-b border-white/10">
               <div className="flex items-center gap-2.5">
-                <span className="px-2.5 py-1 text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-lg shadow-[0_0_12px_rgba(16,185,129,0.2)]">
-                  최종 승인 완료
+                <span
+                  className={`px-2.5 py-1 text-[10px] font-extrabold rounded-lg border ${
+                    approvalStatus === 'APPROVED'
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
+                      : 'bg-amber-500/20 text-amber-200 border-amber-400/50'
+                  }`}
+                >
+                  {approvalStatus === 'APPROVED' ? '최종 승인 완료' : '대표 결재 대기'}
                 </span>
                 <h3 className="text-sm font-extrabold text-white tracking-tight">
                   📋 엔터프라이즈 전자결재 5단 심층 분석 보고서
@@ -1207,8 +1570,20 @@ export default function MissionControlPage() {
                     </span>
                   </div>
                   <p className="text-[14.5px] font-extrabold text-slate-950 leading-snug">
-                    안건: {prompt}
+                    안건: {agendaInfo.core}
                   </p>
+                  {agendaInfo.reasons.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-0.5">
+                      {agendaInfo.reasons.map((r, i) => (
+                        <span
+                          key={`rej-${i}`}
+                          className="px-2 py-0.5 text-[11.5px] font-bold rounded-md bg-rose-50 text-rose-900 border border-rose-300"
+                        >
+                          ↩️ 반려 #{i + 1}: {r}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2 text-center">
@@ -1230,12 +1605,55 @@ export default function MissionControlPage() {
                       검수승인(印)
                     </span>
                   </div>
-                  <div className="w-24 p-2 rounded-xl bg-amber-50 border border-amber-400 shadow-2xs">
-                    <span className="text-[10px] font-bold text-amber-900 block">최종 결재</span>
-                    <span className="text-xs font-extrabold text-slate-950 block my-0.5">신영호 대표</span>
-                    <span className="inline-block px-1.5 py-0.5 text-[9.5px] font-extrabold text-rose-900 bg-rose-100 border border-rose-400 rounded">
-                      결재완료(印)
-                    </span>
+                  <div
+                    className={`w-72 p-2.5 rounded-xl border shadow-2xs text-left space-y-2 ${
+                      approvalStatus === 'APPROVED' ? 'bg-emerald-50 border-emerald-400' : 'bg-amber-50 border-amber-400'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] font-bold text-amber-900 block">최종 결재</span>
+                        <span className="text-xs font-extrabold text-slate-950 block">신영호 대표</span>
+                      </div>
+                      {approvalStatus === 'APPROVED' ? (
+                        <span className="px-2 py-1 text-[10.5px] font-black text-rose-700 border-2 border-rose-600 rounded-md rotate-[-6deg] bg-white">
+                          결재완료(印)
+                          <span className="block text-[8.5px] font-bold text-rose-600/90">{approvedAt}</span>
+                        </span>
+                      ) : (
+                        <span className="px-1.5 py-0.5 text-[10px] font-extrabold text-amber-900 bg-amber-100 border border-amber-400 rounded">
+                          ⏳ 결재 대기
+                        </span>
+                      )}
+                    </div>
+                    {approvalStatus !== 'APPROVED' && (
+                      <>
+                        <button
+                          onClick={handleCeoApprove}
+                          className="w-full px-2.5 py-1.5 text-[12px] font-extrabold bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg border border-emerald-800 transition-all duration-200"
+                        >
+                          ✍️ 최종 결재 승인 확정
+                        </button>
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            value={ceoRejectReason}
+                            onChange={(e) => setCeoRejectReason(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleCeoReject();
+                            }}
+                            placeholder="반려 사유 (예: 협력사 Cpk 개선 대책 구체화)"
+                            className="flex-1 min-w-0 px-2 py-1.5 text-[11.5px] font-medium text-slate-900 placeholder:text-slate-400 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-400"
+                          />
+                          <button
+                            onClick={handleCeoReject}
+                            disabled={!ceoRejectReason.trim()}
+                            className="shrink-0 px-2 py-1.5 text-[11.5px] font-extrabold bg-rose-600 hover:bg-rose-500 disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed text-white rounded-lg border border-rose-700 transition-all duration-200"
+                          >
+                            ↩️ 결재 반려
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1260,50 +1678,9 @@ export default function MissionControlPage() {
                     </div>
 
                     <div className="space-y-2.5">
-                      {sec.bullets.map((b, bIdx) => {
-                        const isRawProvenance = b.includes('📊 [데이터 출처:') || b.includes('실데이터 전수 검증 모드');
-                        const isSimProvenance = b.includes('🧪 [데이터 출처:') || b.includes('표준 레퍼런스 시뮬레이션 모드');
-                        const isWebProvenance = b.includes('🌐 [데이터 출처:') || b.includes('실시간 멀티 소스 지식 수집 모드');
-                        const isFail = b.includes('🚨') || b.includes('불합격') || b.includes('부적합');
-                        const isPass = b.includes('✅') || b.includes('적격(합격)');
-                        const isCeoNote = b.includes('⚡');
-
-                        const segments = b.split(/(\[[^\]]+\])/g);
-
-                        return (
-                          <div
-                            key={bIdx}
-                            className={`p-3.5 rounded-xl text-[14.5px] leading-relaxed font-medium text-slate-900 antialiased border flex items-start gap-2.5 transition-all duration-200 ${
-                              isRawProvenance
-                                ? 'bg-emerald-50/95 border-emerald-400 text-[#0f172a] font-semibold'
-                                : isSimProvenance
-                                ? 'bg-sky-50/95 border-sky-400 text-[#0f172a] font-semibold'
-                                : isWebProvenance
-                                ? 'bg-indigo-50/95 border-indigo-400 text-[#0f172a] font-semibold'
-                                : isFail
-                                ? 'bg-rose-50/90 border-rose-300 text-[#0f172a] font-medium'
-                                : isPass
-                                ? 'bg-emerald-50/60 border-emerald-300 text-[#0f172a] font-medium'
-                                : isCeoNote
-                                ? 'bg-amber-50/90 border-amber-300 text-[#0f172a] font-semibold'
-                                : 'bg-slate-50/95 border-slate-200 text-[#0f172a] font-medium'
-                            }`}
-                          >
-                            <span className="text-slate-900 font-extrabold shrink-0 mt-0.5">•</span>
-                            <span className="flex-1 break-words text-[#0f172a]">
-                              {segments.map((seg, segIdx) =>
-                                seg.startsWith('[') && seg.endsWith(']') ? (
-                                  <strong key={segIdx} className="font-bold text-slate-950">
-                                    {seg}
-                                  </strong>
-                                ) : (
-                                  <React.Fragment key={segIdx}>{seg}</React.Fragment>
-                                )
-                              )}
-                            </span>
-                          </div>
-                        );
-                      })}
+                      {sec.bullets.map((b, bIdx) => (
+                        <ReportBulletView key={`${sIdx}-${bIdx}`} text={b} idx={sIdx * 100 + bIdx} />
+                      ))}
                     </div>
                   </div>
                 ))}
