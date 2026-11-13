@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ReactFlow, Background, Controls } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { useOfficeStore } from '@/store/useOfficeStore';
+import { useOfficeStore, OfficeThemeId } from '@/store/useOfficeStore';
 import AgentCustomNode from '@/components/AgentCustomNode';
 import PixelRpgOffice from '@/components/PixelRpgOffice';
 import EmployeeDirectoryModal from '@/components/EmployeeDirectoryModal';
@@ -462,6 +462,8 @@ export default function MissionControlPage() {
   const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
   const {
+    officeTheme,
+    setOfficeTheme,
     nodes,
     edges,
     messages,
@@ -1005,8 +1007,8 @@ export default function MissionControlPage() {
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-slate-950 text-slate-100 select-none">
       <header className="shrink-0 px-5 py-2.5 bg-slate-900/90 backdrop-blur-md border-b border-slate-800/80 space-y-2 shadow-[0_8px_30px_rgba(0,0,0,0.45)] z-30">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex flex-wrap items-center justify-between gap-2.5">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950/75 backdrop-blur-md border border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]">
               <span className="text-base">🏢</span>
               <div>
@@ -1044,9 +1046,38 @@ export default function MissionControlPage() {
                 🕸️ LangGraph 토폴로지
               </button>
             </div>
+
+            {/* 4-Theme Switcher Capsule */}
+            <div
+              className="flex items-center bg-slate-950/80 backdrop-blur-md p-1 rounded-xl border border-white/10 shadow-inner gap-0.5"
+              role="group"
+              aria-label="사옥 배경 테마 전환"
+            >
+              {(
+                [
+                  { id: 'classic', label: '🏢 클래식 오피스', activeCls: 'from-amber-600 to-orange-500 shadow-[0_0_14px_rgba(245,158,11,0.38)]' },
+                  { id: 'space', label: '🛸 우주 정거장', activeCls: 'from-cyan-600 to-sky-500 shadow-[0_0_14px_rgba(6,182,212,0.45)]' },
+                  { id: 'factory', label: '🏭 스마트팩토리', activeCls: 'from-emerald-600 to-lime-600 shadow-[0_0_14px_rgba(16,185,129,0.42)]' },
+                  { id: 'quantum', label: '⚛️ 퀀텀 AI 코어', activeCls: 'from-violet-600 to-fuchsia-500 shadow-[0_0_14px_rgba(168,85,247,0.45)]' },
+                ] as Array<{ id: OfficeThemeId; label: string; activeCls: string }>
+              ).map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setOfficeTheme(t.id)}
+                  className={`px-2 py-1 text-[10.5px] font-bold rounded-lg transition-all duration-200 whitespace-nowrap ${
+                    officeTheme === t.id
+                      ? `bg-gradient-to-r ${t.activeCls} text-white`
+                      : 'text-slate-400 hover:text-slate-100 hover:bg-white/5'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-1 max-w-3xl">
+          <div className="flex items-center gap-2 flex-1 min-w-[340px] max-w-3xl">
             <input
               ref={fileInputRef}
               type="file"

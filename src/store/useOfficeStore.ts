@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { Node, Edge } from '@xyflow/react';
 import { AgentEvent, HitlPayload } from '@/types/agent';
 
+export type OfficeThemeId = 'classic' | 'space' | 'factory' | 'quantum';
+
 export interface BrowserFrameItem {
   step: string;
   url: string;
@@ -9,6 +11,7 @@ export interface BrowserFrameItem {
 
 interface OfficeState {
   missionRunId: number;
+  officeTheme: OfficeThemeId;
   nodes: Node[];
   edges: Edge[];
   messages: AgentEvent[];
@@ -17,6 +20,7 @@ interface OfficeState {
   finalReport: string | null;
   hitlData: HitlPayload | null;
   metrics: { activeAgents: number; tokens: number; cost: number; rejections: number };
+  setOfficeTheme: (theme: OfficeThemeId) => void;
   dispatchEvent: (event: AgentEvent) => void;
   clearHitl: () => void;
   resetMission: (preserveTeam?: boolean) => void;
@@ -24,6 +28,7 @@ interface OfficeState {
 
 export const useOfficeStore = create<OfficeState>((set) => ({
   missionRunId: 0,
+  officeTheme: 'classic',
   nodes: [],
   edges: [],
   messages: [],
@@ -32,6 +37,8 @@ export const useOfficeStore = create<OfficeState>((set) => ({
   finalReport: null,
   hitlData: null,
   metrics: { activeAgents: 0, tokens: 0, cost: 0, rejections: 0 },
+
+  setOfficeTheme: (theme) => set({ officeTheme: theme }),
 
   clearHitl: () => set({ hitlData: null }),
   resetMission: (preserveTeam = false) =>
