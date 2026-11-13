@@ -204,16 +204,18 @@ def build_xlsx_bytes(title: str, report_text: str, session_id: str = "default") 
     row_idx = 7
     for sec_title, items in sections:
         for idx, item in enumerate(items, start=1):
-            is_ng_row = "부적합" in item or "불합격" in item or "Line-Stop" in item
-            is_warn_row = (not is_ng_row) and ("잠재 산포 리스크 경고" in item or "⚠️" in item)
+            is_gap_row = "보완필요(Gap)" in item or "보완필요" in item
+            is_ng_row = (not is_gap_row) and ("부적합" in item or "불합격" in item or "Line-Stop" in item)
+            is_warn_row = is_gap_row or ((not is_ng_row) and ("잠재 산포 리스크 경고" in item or "⚠️" in item))
             is_ceo_row = "⚡" in item or "CEO" in item
             is_ok_row = (not is_ng_row and not is_warn_row) and ("✅" in item or "적합" in item or "적격" in item)
 
             status_badge = (
-                "🚨 부적합/조치" if is_ng_row
-                else ("⚠️ 산포리스크" if is_warn_row
-                      else ("⚡ CEO 지시반영" if is_ceo_row
-                            else ("✅ 적합/정상" if is_ok_row else "📌 분석항목")))
+                "⚠️ 보완필요(Gap)" if is_gap_row
+                else ("🚨 부적합/조치" if is_ng_row
+                      else ("⚠️ 산포리스크" if is_warn_row
+                            else ("⚡ CEO 지시반영" if is_ceo_row
+                                  else ("✅ 적합/정상" if is_ok_row else "📌 분석항목"))))
             )
             ws.cell(row=row_idx, column=1, value=sec_title).alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
             ws.cell(row=row_idx, column=2, value=f"#{idx}").alignment = Alignment(horizontal="center", vertical="center")
@@ -272,8 +274,13 @@ def build_xlsx_bytes(title: str, report_text: str, session_id: str = "default") 
 
             for sp in spc_rows:
                 cpk_val = sp.get("cpk")
+                sample_n = int(sp.get("n") or 0)
                 is_weak_cpk = cpk_val is not None and cpk_val < 1.33
-                status_str = "🚨 Cpk < 1.33 (산포 개선 필요)" if is_weak_cpk else ("✅ 공정능력 적격" if cpk_val is not None else "ℹ️ 편측 Spec")
+                status_str = (
+                    "🚨 Cpk < 1.33 (산포 개선 필요)" if is_weak_cpk
+                    else ("✅ 공정능력 적격" if cpk_val is not None
+                          else ("ℹ️ 단일 표본(n=1)" if sample_n == 1 else "ℹ️ 편측 Spec"))
+                )
                 vals = [
                     sp.get("group") or f"{sp.get('item', '-')}-{sp.get('check', '-')}",
                     sp.get("n", 0),

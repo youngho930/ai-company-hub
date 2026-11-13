@@ -931,9 +931,80 @@ export default function MissionControlPage() {
   const activeSupNode = nodes.find((n) => n.id !== 'ceo' && n.id.startsWith('sup-'));
   const activeWorkerNodes = nodes.filter((n) => n.id.startsWith('wrk-'));
 
+  const executiveKpis = (() => {
+    const rep = finalReport || '';
+    const isRawData =
+      Boolean(uploadedFileName) ||
+      rep.includes('실데이터 전수 검증 모드') ||
+      rep.includes('Verified Raw Data') ||
+      rep.includes('[전수 품질 판정 통계]');
+    const isLiveWeb = rep.includes('실시간 멀티 소스 지식 수집 모드') || rep.includes('Live Web & Knowledge Synthesis');
+
+    const rowMatch = rep.match(/총\s*(\d+)\s*(?:행|건|줄)/);
+    const clauseMatch = rep.match(/평가 조항\s*(\d+)개/);
+    const sampleText = rowMatch
+      ? `총 ${rowMatch[1]}건 전수 연산`
+      : clauseMatch
+      ? `규격 조항 ${clauseMatch[1]}개 심사`
+      : isLiveWeb
+      ? '공인 웹·언론 교차 검증'
+      : '표준 레퍼런스 표본';
+
+    const modeTitle = isRawData ? '실데이터 전수 검증' : isLiveWeb ? '실시간 멀티소스 검증' : '표준 시뮬레이션';
+
+    const passMatch = rep.match(/합격 \d+건 \(([\d.]+)%\)/) || rep.match(/평균 부합도 ([\d.]+)%/);
+    const conformText = passMatch ? `${passMatch[1]}%` : approvalStatus === 'APPROVED' ? '100% 승인' : 'QC 85점+ 통과';
+
+    const ppmMatch = rep.match(/([\d,]+(?:\.\d+)?)\s*PPM/);
+    const failCntMatch = rep.match(/불합격\s*(\d+)건/) || rep.match(/미충족\/보완필요\s*(\d+)개/);
+    const cpkMatch = rep.match(/Cpk=([\d.]+)/);
+    const riskValue = ppmMatch
+      ? `${ppmMatch[1]} PPM`
+      : cpkMatch
+      ? `Cpk ${cpkMatch[1]}`
+      : failCntMatch
+      ? `보완 필요 ${failCntMatch[1]}건`
+      : '중대 리스크 0건';
+    const riskSub = failCntMatch ? `부적합·Gap ${failCntMatch[1]}건 검출` : '전 항목 기준 충족 점검';
+
+    const stdMatches = Array.from(
+      new Set(rep.match(/\b(?:ISO\s*\d+(?:-\d+)?|IEC\s*\d+|IATF\s*16949|KGMP|FDA\s*21\s*CFR|RoHS|REACH|HACCP)\b/g) || [])
+    );
+    const stdText = stdMatches.slice(0, 2).join(' · ') || '사내 QA·운영 기준';
+    const deptText = activeSupNode?.data?.dept ? String(activeSupNode.data.dept) : '품질·경영 전담팀';
+    const supText = activeSupNode?.data?.name ? String(activeSupNode.data.name) : '전담 팀장';
+
+    return [
+      {
+        label: '① 데이터 검증 모드 · 표본',
+        value: modeTitle,
+        sub: sampleText,
+        tone: isRawData ? 'emerald' : isLiveWeb ? 'indigo' : 'sky',
+      },
+      {
+        label: '② 적합률 · 결재 상태',
+        value: conformText,
+        sub: approvalStatus === 'APPROVED' ? '✅ 신영호 대표 결재 확정' : '⏳ 대표 결재 승인 대기',
+        tone: approvalStatus === 'APPROVED' ? 'emerald' : 'amber',
+      },
+      {
+        label: '③ 핵심 리스크 · PPM 지수',
+        value: riskValue,
+        sub: riskSub,
+        tone: ppmMatch || failCntMatch ? 'rose' : 'slate',
+      },
+      {
+        label: '④ 적용 규격 · 전담 부서',
+        value: stdText,
+        sub: `${deptText} (${supText})`,
+        tone: 'slate',
+      },
+    ];
+  })();
+
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-slate-950 text-slate-100 select-none">
-      <header className="shrink-0 px-5 py-2.5 bg-slate-900/75 backdrop-blur-2xl border-b border-white/10 space-y-2 shadow-[0_8px_30px_rgba(0,0,0,0.5)] z-30">
+      <header className="shrink-0 px-5 py-2.5 bg-slate-900/90 backdrop-blur-md border-b border-slate-800/80 space-y-2 shadow-[0_8px_30px_rgba(0,0,0,0.45)] z-30">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 shrink-0">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950/75 backdrop-blur-md border border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]">
@@ -1102,10 +1173,10 @@ export default function MissionControlPage() {
               <button
                 key={idx}
                 onClick={() => setPrompt(item.prompt)}
-                className={`px-2.5 py-1 text-[11px] rounded-lg border backdrop-blur-md transition-all duration-300 ease-out shrink-0 ${
+                className={`px-2.5 py-1 text-[11px] rounded-lg border backdrop-blur-md transition-all duration-200 shrink-0 ${
                   prompt === item.prompt
-                    ? 'bg-emerald-950/70 border-emerald-500/70 text-emerald-300 font-bold shadow-[0_0_12px_rgba(16,185,129,0.25)]'
-                    : 'bg-slate-950/60 border-white/10 text-slate-400 hover:text-slate-100 hover:border-white/25 hover:bg-slate-900/70'
+                    ? 'bg-emerald-950/80 border-emerald-500/70 text-emerald-300 font-bold shadow-[0_0_12px_rgba(16,185,129,0.2)]'
+                    : 'bg-slate-950/75 border-slate-800/80 text-slate-400 hover:text-slate-100 hover:border-slate-700 hover:bg-slate-900/90'
                 }`}
               >
                 {item.label}
@@ -1561,7 +1632,7 @@ export default function MissionControlPage() {
                   onClick={() => handleDownloadReportFile('xlsx')}
                   className="px-3.5 py-1.5 text-xs font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:brightness-110 hover:-translate-y-0.5 text-white rounded-xl shadow-[0_4px_15px_rgba(16,185,129,0.35)] transition-all duration-300 ease-out"
                 >
-                  📗 2-Sheet Excel (.xlsx)
+                  📗 3-Sheet Excel (.xlsx)
                 </button>
                 <button
                   onClick={() => handleDownloadReportFile('pdf')}
@@ -1705,6 +1776,36 @@ export default function MissionControlPage() {
                     )}
                   </div>
                 </div>
+              </div>
+
+              {/* 4열 Executive KPI 요약 카드 그리드 */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {executiveKpis.map((kpi) => {
+                  const toneStyles =
+                    kpi.tone === 'emerald'
+                      ? 'bg-emerald-50/70 border-emerald-300 text-emerald-900'
+                      : kpi.tone === 'rose'
+                      ? 'bg-rose-50/70 border-rose-300 text-rose-900'
+                      : kpi.tone === 'amber'
+                      ? 'bg-amber-50/70 border-amber-300 text-amber-900'
+                      : kpi.tone === 'indigo'
+                      ? 'bg-indigo-50/70 border-indigo-300 text-indigo-900'
+                      : kpi.tone === 'sky'
+                      ? 'bg-sky-50/70 border-sky-300 text-sky-900'
+                      : 'bg-white border-slate-300 text-slate-900';
+                  return (
+                    <div
+                      key={kpi.label}
+                      className={`p-3.5 rounded-xl border shadow-2xs flex flex-col justify-between gap-1 ${toneStyles}`}
+                    >
+                      <span className="text-[11px] font-bold text-slate-600 tracking-tight">{kpi.label}</span>
+                      <span className="text-[16px] font-black tracking-tight tabular-nums text-slate-950 truncate">
+                        {kpi.value}
+                      </span>
+                      <span className="text-[11.5px] font-semibold text-slate-700 truncate">{kpi.sub}</span>
+                    </div>
+                  );
+                })}
               </div>
 
               {parsedReport.bannerNote && (

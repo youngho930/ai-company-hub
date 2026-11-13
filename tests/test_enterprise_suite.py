@@ -340,6 +340,18 @@ def run_all_tests():
     assert wb_chk.sheetnames == ["1_최종승인_결재보고서", "2_SPC_및_Audit_Trail_정량표", "3_전수검수_원본데이터"]
     ws1 = wb_chk["1_최종승인_결재보고서"]
     assert "최종승인 (신영호 대표)" in str(ws1["D3"].value)
+    ws2 = wb_chk["2_SPC_및_Audit_Trail_정량표"]
+    ws2_statuses = [str(ws2.cell(row=r, column=9).value) for r in range(1, ws2.max_row + 1)]
+    assert any("단일 표본(n=1)" in st for st in ws2_statuses)
+
+    gap_xlsx = build_xlsx_bytes(
+        "SOP 심사",
+        "📌 1. 요약\n• [ISO 13485 7.5.6] — 🚨 부적합/보완필요(Gap) 문서번호 미기재",
+        session_id="empty_gap_sess",
+    )
+    wb_gap = _openpyxl.load_workbook(_io.BytesIO(gap_xlsx))
+    ws_gap1 = wb_gap["1_최종승인_결재보고서"]
+    assert str(ws_gap1["D7"].value) == "⚠️ 보완필요(Gap)"
     print("✔ [기둥 10 통과] 자가중독 차단, 도메인 규격 집중, 전 NG 5-Why/Line-Stop, CEO 반려 지시 본문 반영, 동적 파일명 & 3시트 결재 엑셀 검증 완료")
 
     print("=================================================================")
