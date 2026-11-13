@@ -20,7 +20,7 @@ load_dotenv(override=True)
 from backend.hr_router import assemble_team
 from backend.workflow import build_company_graph, MissionState, split_ceo_reject_directives
 from backend.file_processor import parse_uploaded_document
-from backend.report_exporter import build_docx_bytes, build_xlsx_bytes
+from backend.report_exporter import build_docx_bytes, build_xlsx_bytes, build_export_filename
 from backend.db_store import (
     init_db,
     get_session_upload,
@@ -51,7 +51,13 @@ from backend.openai_oauth import (
 init_db()
 
 app = FastAPI(title="AI Company Mission Control API - Enterprise v3 Ultimate")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["Content-Disposition"],
+)
 
 company_graph = build_company_graph()
 
@@ -89,6 +95,7 @@ class ReportExportRequest(BaseModel):
     report_markdown: str
     format: str
     session_id: str = "default"
+    attached_filename: str = ""
 
 @app.get("/api/health")
 async def enterprise_health_check():
@@ -180,19 +187,16 @@ async def remove_mission_history(record_id: int):
 @app.post("/api/mission/export")
 async def export_report_file(req: ReportExportRequest):
     fmt = req.format.lower().strip()
-    safe_title = "".join(c for c in req.title[:25] if c.isalnum() or c in (" ", "_", "-")).strip().replace(" ", "_") or "AI_결재보고서"
+    filename = build_export_filename(req.title, fmt, req.attached_filename, req.session_id)
 
     if fmt == "docx":
         file_bytes = await asyncio.to_thread(build_docx_bytes, req.title, req.report_markdown, req.session_id)
-        filename = f"{safe_title}_심층보고서.docx"
         media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     elif fmt == "xlsx":
         file_bytes = await asyncio.to_thread(build_xlsx_bytes, req.title, req.report_markdown, req.session_id)
-        filename = f"{safe_title}_데이터정합보고서.xlsx"
         media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     else:
         file_bytes = req.report_markdown.encode("utf-8-sig")
-        filename = f"{safe_title}_보고서.md"
         media_type = "text/markdown; charset=utf-8"
 
     encoded_fname = urllib.parse.quote(filename)

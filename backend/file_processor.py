@@ -164,7 +164,7 @@ COMPLIANCE_STANDARDS_REGISTRY: dict[str, dict] = {
     },
     "IATF 16949": {
         "full_name": "IATF 16949:2016 자동차·전장 부품 품질경영시스템 (5 Core Tools)",
-        "triggers": ["iatf 16949", "iatf16949", "16949", "apqp", "ppap", "msa", "spc", "cpk", "core tools"],
+        "triggers": ["iatf 16949", "iatf16949", "16949", "apqp", "ppap", "msa", "core tools", "자동차 품질", "전장부품 품질", "전장부품 수입검사"],
         "clauses": [
             {
                 "clause": "IATF 16949 Core Tool 1 & 2 (APQP 선행제품품질계획 & PPAP 부품승인)",
@@ -246,25 +246,74 @@ COMPLIANCE_STANDARDS_REGISTRY: dict[str, dict] = {
 }
 
 
+SYSTEM_GENERATED_PREFIXES = (
+    "• [규격 적합성 정량 진단 요약",
+    "[규격 적합성 정량 진단 요약",
+    "• [다중 규격",
+    "[다중 규격",
+    "• [real spc",
+    "• [기준치 초과 품목 5-why",
+    "• [capa(",
+    "• [협력사별 line-stop",
+    "• ⚠️ [잠재 산포 리스크 경고]",
+    "- [",
+)
+
+SYSTEM_GENERATED_MARKERS = (
+    "➔ [문서 내 누락된 필수 요구사항]:",
+    "[실무 보완 문구 예시(template snippet)]:",
+    "[부정·결여 표현 원문]:",
+    "— 🚨 부적합/보완필요(gap)",
+    "— ✅ 적합(compliant)",
+    "— ✅ 적합(기준 확인)",
+)
+
+
+def _strip_system_generated_sections(text: str) -> str:
+    """
+    [자가 중독(Self-Poisoning) 원천 차단]
+    1차 심사 결과문·템플릿 예시 문구·웹 크롤링 데이터가 규격 탐지나 부정어 필터에
+    재유입되지 않도록 순수 원본 첨부 문서 텍스트만 남깁니다.
+    """
+    if not text:
+        return ""
+    cleaned_lines: list[str] = []
+    for raw_line in text.splitlines():
+        s = raw_line.strip()
+        if not s:
+            continue
+        low = s.lower()
+        if low.startswith(SYSTEM_GENERATED_PREFIXES):
+            break
+        if any(m in low for m in SYSTEM_GENERATED_MARKERS):
+            continue
+        # parse_uploaded_document 추출 래퍼("[문서 주요 내용 N]: ...") 벗겨내어 순수 원문만 복원
+        s = re.sub(r"^[•\-\*]\s*\[(?:문서 주요 내용|PDF 핵심 문장)\s*\d+\]:\s*", "", s)
+        if re.match(r"^[•\-\*]\s*\[첨부 (?:문서명|PDF 문서 전수 스캔)\]:", s):
+            continue
+        cleaned_lines.append(s)
+    return "\n".join(cleaned_lines)
+
+
 def detect_compliance_standards(text: str, prompt: str = "") -> Tuple[list[str], list[str]]:
     """
-    [엄격한 규격 심사 의도 분리]
-    사용자가 명시적으로 특정 인증 규격명(ISO 9001, ISO 13485, IATF 16949, RoHS 등)이나
-    '인증', '규격 심사', 'SOP/절차서/매뉴얼 검토'를 요청했거나, 업로드된 문서 자체에 해당 규격이 명시된 경우에만
-    규격 리스트를 반환합니다.
-    단순히 '수입검사', '공정검사', '불량률', 'PPM', '파레토', 'CAPA', '8D'만 있는 경우에는
-    묻지 않은 국제 규격을 무차별적으로 끌어오지 않도록 빈 리스트([], [])를 반환합니다.
+    [엄격한 규격 심사 의도 분리 & 자가 중독 차단]
+    시스템 생성 요약문/템플릿이 섞이지 않은 순수 원본 문서(text)와 사용자 프롬프트(prompt)만 검사하며,
+    문서 핵심 도메인에 맞는 최대 4개 규격에만 집중합니다.
     """
-    combined = f"{text or ''}\n{prompt or ''}".lower()
+    pure_text = _strip_system_generated_sections(text or "")
+    pure_text_low = pure_text.lower()
+    prompt_low = (prompt or "").lower()
+    combined = f"{pure_text_low}\n{prompt_low}"
     matched_registered: list[str] = []
 
     for std_key, std_info in COMPLIANCE_STANDARDS_REGISTRY.items():
         if any(trig in combined for trig in std_info["triggers"]):
             matched_registered.append(std_key)
 
-    # 미등록 국제/국내 규격 패턴 탐지 (예: ISO 27001, ISO 22000, HACCP, ISMS-P, AS9100, CE MDR 등)
+    # 미등록 국제/국내 규격 패턴 탐지 (이미 ISO 13485 세부 조항에 통합된 멸균·포장 하위규격 11135/11137/11607 제외)
     unregistered_found: list[str] = []
-    known_numbers = {"9001", "13485", "14971", "60601", "62304", "16949", "14001", "45001", "820", "806", "2859"}
+    known_numbers = {"9001", "13485", "14971", "60601", "62304", "16949", "14001", "45001", "820", "806", "2859", "11135", "11137", "11607"}
 
     for m in re.finditer(r"\b(iso|iec|iatf|as|ks\s*[a-z]?)\s*[-]?\s*(\d{4,5})\b", combined, flags=re.I):
         prefix = m.group(1).upper().strip()
@@ -302,6 +351,17 @@ def detect_compliance_standards(text: str, prompt: str = "") -> Tuple[list[str],
         ]
         if any(k in combined for k in explicit_doc_audit_keywords):
             matched_registered = ["ISO 13485", "ISO 9001"]
+
+    # 도메인 집중 캡: 다수 규격이 동시에 우연히 언급된 경우 프롬프트/원문 명시 빈도가 높은 핵심 규격 최대 4개로 제한
+    if len(matched_registered) + len(unregistered_found) > 4:
+        def _score_reg(std_k: str) -> int:
+            trigs = COMPLIANCE_STANDARDS_REGISTRY[std_k]["triggers"]
+            return sum(3 for t in trigs if t in prompt_low) + sum(2 for t in trigs if t in pure_text_low)
+
+        matched_registered.sort(key=_score_reg, reverse=True)
+        matched_registered = matched_registered[:4]
+        remain = max(0, 4 - len(matched_registered))
+        unregistered_found = unregistered_found[:remain]
 
     return matched_registered, unregistered_found
 
@@ -375,16 +435,17 @@ def _check_structural_evidence(clause_name: str, doc_text_lower: str) -> Tuple[l
 def evaluate_iso_compliance(text: str, prompt: str = "", crawled_knowledge: str = "") -> str:
     """
     [확장형 다중 규격 레지스트리(Multi-Standard Compliance Registry) & 동적 폴백 심사 엔진]
-    임원 결재 보고서 품질을 위해 내부 시스템 메타 문구((검출 근거: ...), (일부 언급되었으나...))를 배제하고
+    시스템 생성 요약문(자가 중독)을 배제한 순수 원본 텍스트 + 사용자 프롬프트만 정밀 심사하며,
     정돈된 조항별 정량 진단과 시정 가이드를 분리 산출합니다.
     """
-    combined = f"{text or ''}\n{prompt or ''}".lower()
-    matched_stds, unregistered_stds = detect_compliance_standards(text, prompt)
+    pure_text = _strip_system_generated_sections(text or "")
+    combined = f"{pure_text}\n{prompt or ''}".lower()
+    matched_stds, unregistered_stds = detect_compliance_standards(pure_text, prompt)
 
     if not matched_stds and not unregistered_stds:
         matched_stds = ["ISO 13485", "ISO 9001"]
 
-    has_actual_doc = len((text or "").strip()) > 80 and "[첨부 데이터 전수" not in (text or "")
+    has_actual_doc = len(pure_text.strip()) > 80 and "[첨부 데이터 전수" not in pure_text
     active_clauses: list[dict] = []
     std_titles: list[str] = []
 
@@ -436,8 +497,8 @@ def evaluate_iso_compliance(text: str, prompt: str = "", crawled_knowledge: str 
     clause_lines = []
     negation_hit_count = 0
 
-    doc_text_lower = (text or "").lower()
-    doc_sentences = _split_sentences(text or "")
+    doc_text_lower = pure_text.lower()
+    doc_sentences = _split_sentences(pure_text)
 
     for idx, c in enumerate(active_clauses, start=1):
         matched_kws = [kw for kw in c["keywords"] if kw in combined]
@@ -805,7 +866,20 @@ def _analyze_tabular_rows(filename: str, all_clean_rows: list[list[str]], sessio
         if 0 <= val_idx < len(masked_row) and masked_row[val_idx]:
             p_name = masked_row[item_idx] if (0 <= item_idx < len(masked_row)) else f"행{r_num}"
             c_name = masked_row[check_idx] if (0 <= check_idx < len(masked_row)) else headers[val_idx]
-            item_metric_list.append(f"{p_name}({c_name}: {masked_row[val_idx]})")
+            dev_info_parts = []
+            if auto_dev is not None:
+                dev_info_parts.append(f"편차 {auto_dev:+.2f}")
+            elif 0 <= dev_idx < len(masked_row) and masked_row[dev_idx]:
+                dev_info_parts.append(f"편차 {masked_row[dev_idx]}")
+            if (0 <= spec_idx < len(masked_row)) and (0 <= val_idx < len(masked_row)):
+                r_lsl, r_usl = parse_spec_limits(masked_row[spec_idx])
+                r_gval = _parse_measured_number(masked_row[val_idx])
+                if r_gval is not None and (r_lsl is not None or r_usl is not None):
+                    r_margin = compute_spc_capability([r_gval], r_lsl, r_usl)["min_margin"]
+                    if r_margin is not None:
+                        dev_info_parts.append(f"여유도 {r_margin:.1f}%")
+            extra_str = f" ({', '.join(dev_info_parts)})" if dev_info_parts else ""
+            item_metric_list.append(f"{p_name}[{c_name}: {masked_row[val_idx]}{extra_str}]")
 
         if 0 <= dev_idx < len(masked_row) and masked_row[dev_idx]:
             clean_dev = re.sub(r"[,%\s]", "", str(masked_row[dev_idx]))
@@ -816,12 +890,6 @@ def _analyze_tabular_rows(filename: str, all_clean_rows: list[list[str]], sessio
                     pass
         elif auto_dev is not None:
             deviation_vals.append(auto_dev)
-
-    set_session_table(session_id, {
-        "filename": filename,
-        "headers": export_headers,
-        "rows": structured_export_rows,
-    })
 
     lines = [
         f"• [첨부 데이터 전수 스캔 완료]: 파일명 '{filename}' (헤더 자동 탐지: {h_idx+1}행) | 총 데이터 {total_rows}건 전수 분석 (누락 0건) | 컬럼: {', '.join(headers[:10])}."
@@ -856,14 +924,8 @@ def _analyze_tabular_rows(filename: str, all_clean_rows: list[list[str]], sessio
             v_summaries.append(f"{v_name}(총 {st['total']}건 중 불량 {st['fail']}건, 불량률 {v_rate}% / {v_ppm:,} PPM)")
         lines.append(f"• [협력사별 품질·불량률 집계]: {', '.join(v_summaries[:8])}.")
 
-    if item_metric_list or deviation_vals:
-        dev_stat_str = ""
-        if deviation_vals:
-            avg_abs_dev = round(sum(abs(x) for x in deviation_vals) / len(deviation_vals), 2)
-            min_dev = min(deviation_vals)
-            max_dev = max(deviation_vals)
-            dev_stat_str = f" | 규격 대비 편차(오차) 분포[최소 {min_dev:+.1f} ~ 최대 {max_dev:+.1f}, 평균 절대편차 {avg_abs_dev}]"
-        lines.append(f"• [항목별 실측치(단위별 분리) 및 편차 분석]: {', '.join(item_metric_list[:6])}{dev_stat_str}.")
+    if item_metric_list:
+        lines.append(f"• [항목별 실측치(단위별 분리) 및 개별 편차·규격 여유도]: {', '.join(item_metric_list[:12])}.")
 
     # =================================================================
     # [Real SPC: 표준편차 σ · Cp · Cpk · 규격 여유도 정밀 연산 + 잠재 산포 리스크 경고]
@@ -939,20 +1001,63 @@ def _analyze_tabular_rows(filename: str, all_clean_rows: list[list[str]], sessio
     if spc_warning_lines:
         lines.extend(spc_warning_lines[:8])
 
+    set_session_table(session_id, {
+        "filename": filename,
+        "headers": export_headers,
+        "rows": structured_export_rows,
+        "spc": spc_meta,
+    })
+
     if failed_items_records:
-        top_fail = failed_items_records[0]
+        # 모든 부적합(NG) 품목별 맞춤형 5-Why 근본원인 분석 생성
+        for rec in failed_items_records[:12]:
+            chk_low = f"{rec['check']} {rec['item']}".lower()
+            if any(k in chk_low for k in ["카드뮴", "납", "수은", "6가크롬", "cr6", "cd", "pb", "hg", "rohs", "유해물질", "허용농도"]):
+                why_chain = (
+                    f"① Why1(현상): {rec['check']} 허용기준({rec['spec']}) 대비 실측치({rec['measured']}, {rec['diff']}) 초과 검출 ➔ "
+                    f"② Why2(공정/자재): 공급사({rec['vendor']}) 하위 원부자재 균질재질 내 제한물질 혼입 및 배합 통제 실패 ➔ "
+                    f"③ Why3(계측): 협력사 출하 전 XRF/ICP-OES 유해물질 스크리닝 선별 누락 ➔ "
+                    f"④ Why4(관리): RoHS 1년 주기 공인성적서 및 LOT별 CoA 상한 자동 인터락 미연동 ➔ "
+                    f"⑤ Why5(시스템): 협력사 유해물질 비함유 관리체계 및 라인 투입 사전 차단 프로세스 부재."
+                )
+            elif any(k in chk_low for k in ["두께", "치수", "내경", "외경", "평탄도", "공차"]):
+                why_chain = (
+                    f"① Why1(현상): {rec['check']} 기준규격({rec['spec']}) 대비 실측치({rec['measured']}, {rec['diff']}) 공차 이탈 ➔ "
+                    f"② Why2(공정): 공급사({rec['vendor']}) 도금 전류밀도·가공 이송 조건 또는 금형 마모 편차 발생 ➔ "
+                    f"③ Why3(설비): 인라인 계측 센서 영점 교정(Calibration) 주기 경과 ➔ "
+                    f"④ Why4(관리): 출하 전 SPC Xbar-R 관리도 및 공정능력(Cpk ≥ 1.33) 사전 경고 미작동 ➔ "
+                    f"⑤ Why5(시스템): 협력사 출하검사(OQC)와 당사 수입검사(IQC) 간 실시간 CoA 인터락 부재."
+                )
+            else:
+                why_chain = (
+                    f"① Why1(현상): 기준규격({rec['spec']}) 대비 실측치({rec['measured']}, {rec['diff']}) 이탈 발생 ➔ "
+                    f"② Why2(공정): 공급사({rec['vendor']}) 원료 순도·제조 배합 파라미터 편차 발생 ➔ "
+                    f"③ Why3(설비): 검사 설비 검교정 및 조건 모니터링 주기 경과 ➔ "
+                    f"④ Why4(관리): 출하 전 SPC 관리한계(UCL/LCL) 사전 경고 미작동 ➔ "
+                    f"⑤ Why5(시스템): 협력사 출하검사(OQC)와 당사 수입검사(IQC) 간 실시간 CoA 인터락 부재."
+                )
+            lines.append(
+                f"• [기준치 초과 품목 5-Why 근본원인 분석 (#{rec['row']}행 | {rec['lot']} | {rec['item']}({rec['vendor']}) - {rec['check']})]: {why_chain}"
+            )
+
+        # 협력사별 전수 그룹핑 기반 Line-Stop · SCAR · 8D CAPA 조치 생성
+        vendor_ng_map: dict[str, list[dict[str, str]]] = {}
+        for rec in failed_items_records:
+            vendor_ng_map.setdefault(rec["vendor"], []).append(rec)
+
+        for v_name, v_recs in vendor_ng_map.items():
+            lot_summary = ", ".join(f"{r['lot']}({r['item']}·{r['check']} {r['measured']})" for r in v_recs[:6])
+            lines.append(
+                f"• [협력사별 Line-Stop · SCAR · 8D CAPA 조치 ({v_name})]: "
+                f"[D3 긴급 봉쇄·Line-Stop] 부적합 {len(v_recs)}건({lot_summary}) 즉시 라인 투입·출하 전면 정지(Line-Stop) 및 MRB 적색 격리, ERP 해당 협력사 동일 품목 입고 보류 인터락 적용 | "
+                f"[D4~D7 SCAR & 8D CAPA] {v_name} 대상 시정조치요구서(SCAR/8D Report) 7일 내 제출 명령, 유해물질 전수 ICP-OES/XRF 검증 및 후속 3개월 출하 LOT 공정능력지수(Cpk ≥ 1.33) 입증 완료 전 재입고 차단."
+            )
+
+        vendors_all = ", ".join(vendor_ng_map.keys())
         lines.append(
-            f"• [기준치 초과 품목 5-Why 근본원인 분석 ({top_fail['item']} - {top_fail['check']})]: "
-            f"① Why1(현상): 기준규격({top_fail['spec']}) 대비 실측치({top_fail['measured']}) 이탈 발생 ➔ "
-            f"② Why2(공정): 공급사({top_fail['vendor']}) 제조 배합비/코팅 두께 설정 파라미터 편차 발생 ➔ "
-            f"③ Why3(설비): 센서 영점 교정(Calibration) 주기 경과 및 노후화 ➔ "
-            f"④ Why4(관리): 출하 전 SPC(통계적 공정관리) 관리도(Xbar-R) 사전 경고 미작동 ➔ "
-            f"⑤ Why5(시스템): 협력사 출하검사(OQC)와 당사 수입검사(IQC) 간 실시간 CoA 인터락 부재."
-        )
-        lines.append(
-            f"• [CAPA(시정 및 예방조치) 및 8D 권고사항]: "
-            f"[시정조치(Corrective Action)] 부적합 LOT 전량 부적합품 구역(MRB) 격리 및 {top_fail['vendor']} 대상 시정조치요구서(SCAR/8D Report) 즉시 발행 | "
-            f"[예방조치(Preventive Action)] 핵심 특성에 대한 공정능력지수(Cpk ≥ 1.33) 성적서 의무 제출 및 비전 AI 기반 CoA 상·하한 자동 인터락 적용."
+            f"• [CAPA(시정 및 예방조치) 및 8D 총괄 권고사항]: "
+            f"[시정조치(Corrective Action)] 검출된 전 부적합 {len(failed_items_records)}개 LOT MRB 격리 및 해당 협력사({vendors_all}) 전원 대상 Line-Stop·SCAR/8D Report 발행 | "
+            f"[예방조치(Preventive Action)] 전 품목 상·하한 Spec 자동 인터락 적용, 핵심 특성 Cpk ≥ 1.33 및 RoHS 공인성적서(1년 유효기간) ERP 연동 검증 의무화."
         )
 
     if fail_details:
@@ -1040,8 +1145,8 @@ def parse_uploaded_document(filename: str, content: bytes, session_id: str = "de
             extracted_lines = [f"• [첨부 PDF 문서 전수 스캔]: {filename} (총 {meta.get('pages', 1)}페이지, {meta['size_kb']}KB)."]
             if len(clean_pdf) > 20:
                 sents = [s.strip() for s in re.split(r"(?<=[.?!다요음함])\s+", clean_pdf) if len(s.strip()) > 20]
-                for idx, s in enumerate(sents[:10], 1):
-                    extracted_lines.append(f"• [PDF 핵심 문장 {idx}]: {s[:180]}.")
+                for idx, s in enumerate(sents[:30], 1):
+                    extracted_lines.append(f"• [PDF 핵심 문장 {idx}]: {s[:220]}.")
             if is_compliance_audit_request(clean_pdf, filename):
                 meta["type"] = "ISO_COMPLIANCE_DOC"
                 extracted_lines.append(evaluate_iso_compliance(clean_pdf, filename))
@@ -1050,8 +1155,8 @@ def parse_uploaded_document(filename: str, content: bytes, session_id: str = "de
         txt, _ = scrub_pii_and_secrets(content.decode("utf-8", errors="ignore"))
         lines = [line.strip() for line in txt.splitlines() if len(line.strip()) > 5]
         out = [f"• [첨부 문서명]: {filename} (총 {len(lines)}줄)."]
-        for idx, l in enumerate(lines[:12], 1):
-            out.append(f"• [문서 주요 내용 {idx}]: {l[:170]}.")
+        for idx, l in enumerate(lines[:60], 1):
+            out.append(f"• [문서 주요 내용 {idx}]: {l[:220]}.")
         if is_compliance_audit_request(txt, filename):
             meta["type"] = "ISO_COMPLIANCE_DOC"
             out.append(evaluate_iso_compliance(txt, filename))

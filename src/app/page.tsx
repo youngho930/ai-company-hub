@@ -613,15 +613,40 @@ export default function MissionControlPage() {
     reader.readAsDataURL(file);
   };
 
+  const buildDynamicExportFilename = (ext: string): string => {
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const cleanPart = (raw: string, maxLen: number) =>
+      raw
+        .replace(/[\\/:*?"<>|\r\n]+/g, '_')
+        .replace(/\s+/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^[_-]+|[_-]+$/g, '')
+        .slice(0, maxLen)
+        .replace(/^[_-]+|[_-]+$/g, '') || '핵심안건';
+
+    if (uploadedFileName) {
+      const baseNoExt = uploadedFileName.replace(/\.[^/.]+$/, '');
+      return `[결재보고서]_${cleanPart(baseNoExt, 40)}_분석_${dateStr}.${ext}`;
+    }
+    const cleanTopic = prompt
+      .replace(/\[↩️[^\]]*\]/g, '')
+      .replace(/\(첨부파일[^)]*\)/g, '')
+      .replace(/(?:정밀\s*분석\s*및\s*결재\s*보고서|최종\s*승인\s*결재\s*보고서|결재\s*보고서|심층\s*보고서|보고서)\s*$/g, '')
+      .replace(/(?:조사해줘|작성해줘|분석해줘|검토해줘|정리해줘|알려줘|해줘)\s*$/g, '')
+      .trim();
+    return `[결재보고서]_${cleanPart(cleanTopic, 32)}_${dateStr}.${ext}`;
+  };
+
   const handleDownloadReportFile = async (format: 'docx' | 'xlsx' | 'md' | 'pdf') => {
     if (!finalReport) return;
     if (format === 'pdf') {
       const printWin = window.open('', '_blank', 'width=900,height=800');
       if (!printWin) return;
+      const pdfTitle = buildDynamicExportFilename('pdf').replace(/\.pdf$/i, '');
       const htmlContent = `
         <html>
           <head>
-            <title>${prompt.slice(0, 30)} - 최종 결재 보고서</title>
+            <title>${pdfTitle}</title>
             <style>
               body { font-family: 'Malgun Gothic', sans-serif; padding: 40px; color: #0f172a; line-height: 1.7; }
               h1 { color: #1e3a5f; border-bottom: 2px solid #1e3a5f; padding-bottom: 10px; font-size: 20px; }
@@ -629,7 +654,7 @@ export default function MissionControlPage() {
             </style>
           </head>
           <body>
-            <h1>📋 AI Company Hub 최종 승인 결재 보고서</h1>
+            <h1>📋 ${pdfTitle}</h1>
             <pre>${cleanReportText(finalReport)}</pre>
             <script>window.onload = () => { window.print(); };</script>
           </body>
@@ -648,6 +673,7 @@ export default function MissionControlPage() {
           report_markdown: cleanReportText(finalReport),
           format,
           session_id: sessionId,
+          attached_filename: uploadedFileName || '',
         }),
       });
       const blob = await res.blob();
@@ -655,7 +681,20 @@ export default function MissionControlPage() {
       const a = document.createElement('a');
       a.href = url;
       const ext = format === 'docx' ? 'docx' : format === 'xlsx' ? 'xlsx' : 'md';
-      a.download = `AI_결재보고서_${new Date().toISOString().slice(0, 10)}.${ext}`;
+      let downloadName = buildDynamicExportFilename(ext);
+      const disp = res.headers.get('Content-Disposition') || '';
+      const utfMatch = disp.match(/filename\*\=UTF-8''([^;\n]+)/i);
+      const plainMatch = disp.match(/filename="?([^";\n]+)"?/i);
+      if (utfMatch?.[1]) {
+        try {
+          downloadName = decodeURIComponent(utfMatch[1].trim());
+        } catch {
+          // keep fallback
+        }
+      } else if (plainMatch?.[1]) {
+        downloadName = plainMatch[1].trim();
+      }
+      a.download = downloadName;
       document.body.appendChild(a);
       a.click();
       a.remove();

@@ -68,7 +68,9 @@ def run_all_tests():
     summary, meta = parse_uploaded_document("coa_test.csv", csv_bytes)
     assert meta["pass_count"] == 1 and meta["fail_count"] == 1
     assert meta["ppm"] == 500000
-    assert "평균 절대편차 0.45" in summary
+    assert "평균 절대편차" not in summary
+    assert "[항목별 실측치(단위별 분리) 및 개별 편차·규격 여유도]" in summary
+    assert "+0.3" in summary and "-0.6" in summary
     assert "500,000 PPM" in summary
     assert "파레토(Pareto) 빈도 분석" in summary
     assert "5-Why 근본원인 분석" in summary
@@ -246,7 +248,7 @@ def run_all_tests():
     )
     sec2 = spc_report.split("📌 2.")[1].split("📌 3.")[0]
     sec3 = spc_report.split("📌 3.")[1].split("📌 4.")[0]
-    assert "⚠️ [잠재 산포 리스크 경고]" in sec2 and "⚠️ [잠재 산포 리스크 경고]" in sec3
+    assert "⚠️ [잠재 산포 리스크 경고]" not in sec2 and "⚠️ [잠재 산포 리스크 경고]" in sec3
     assert "Cpk=" in sec2
     print(f"✔ [기둥 8 통과] Real SPC 수학 연산(σ={exp_sigma:.4f}, Cp={exp_cp:.2f}, Cpk={exp_cpk:.2f}) 및 규격 내 합격 LOT 잠재 산포 리스크 경고(SECTION 02·03) 검증 완료")
 
@@ -281,12 +283,64 @@ def run_all_tests():
         assert "부정/미수립 문맥 검출" in ln, f"{prefix} 부정 문맥 미검출"
 
     # Test 10: 전자결재 대표 반려(Reject & Re-run) 지시 분리
-    from backend.workflow import split_ceo_reject_directives
+    from backend.workflow import split_ceo_reject_directives, _extract_uploaded_context
+    from backend.report_exporter import build_export_filename
+    import io as _io
+    import openpyxl as _openpyxl
+
     core_p, reasons = split_ceo_reject_directives(
         "월간 불량률 CAPA 보고서 작성해줘 [↩️ 대표 결재 반려 보완지시 #1: 협력사 Cpk 산포 개선 대책을 더 구체적으로 추가해]"
     )
     assert core_p == "월간 불량률 CAPA 보고서 작성해줘" and reasons == ["협력사 Cpk 산포 개선 대책을 더 구체적으로 추가해"]
     print("✔ [기둥 9 통과] 부정어 문맥 필터('밸리데이션 절차 없음' ➔ Gap), 구조적 증빙 정규식(Rev.N·보존기한 N년), 대표 반려 재가동 지시 분리 검증 완료")
+
+    # Test 11: 자가 중독 차단, 도메인 규격 집중, 전 NG 5-Why/Line-Stop + CEO 지시 반영, 혼합단위/중복경고 제거, 동적 파일명 & 3시트 엑셀 검증
+    # 11-1) 자가 중독 차단 & 12개 무관 규격 오탐 방지
+    with open("samples/의료기기_멸균포장_SOP_초안.txt", "rb") as f:
+        sop_raw_summary, _ = parse_uploaded_document("의료기기_멸균포장_SOP_초안.txt", f.read())
+    poisoned_evidence = (
+        f"[업로드된 첨부파일 전수 연산 데이터]\n{sop_raw_summary}\n\n"
+        f"[최신 언론 보도 1]: 자동차 부품사 IATF 16949 및 환경 ISO 14001 경영 동향"
+    )
+    extracted_pure = _extract_uploaded_context(poisoned_evidence)
+    assert "🚨 부적합/보완필요" not in extracted_pure and "[실무 보완 문구 예시" not in extracted_pure
+    sop_regs, _ = detect_compliance_standards(extracted_pure, "첨부한 '의료기기_멸균포장_SOP_초안.txt' 규격 심사해줘")
+    assert "ISO 13485" in sop_regs and "ISO 14971" in sop_regs
+    assert "IATF 16949" not in sop_regs and "ISO 14001 / ISO 45001" not in sop_regs
+    assert len(sop_regs) <= 4
+    re_audit = evaluate_iso_compliance(extracted_pure, "첨부한 '의료기기_멸균포장_SOP_초안.txt' 규격 심사해줘")
+    assert "[부정·결여 표현 원문]: \"• [ISO" not in re_audit
+
+    # 11-2) 전 NG 품목 5-Why / 협력사별 Line-Stop + CEO 반려 지시(오토닉스전장) SECTION 04/05 반영 + 혼합단위 제거
+    assert "평균 절대편차" not in rohs_summary
+    assert "LOT-EV-002" in rohs_summary and "LOT-EV-004" in rohs_summary and "LOT-EV-008" in rohs_summary
+    assert "Line-Stop · SCAR · 8D CAPA" in rohs_summary
+    rohs_with_ceo = build_comprehensive_5section_report(
+        "첨부한 '전장부품_수입검사_RoHS_성적서.csv' 파일의 핵심 수치와 불량률을 분석해줘",
+        f"[업로드된 첨부파일 전수 연산 데이터]\n{rohs_summary}",
+        {"id": "sup-qa-01", "name": "임승현 팀장", "dept": "품질보증·QA팀"},
+        {"id": "wrk-qa-01", "name": "한도윤 수석", "dept": "품질보증·QA팀"},
+        {"id": "wrk-qa-02", "name": "장지우 책임", "dept": "품질보증·QA팀"},
+        live_notes=["(주)오토닉스전장 납품 건은 즉시 라인 스톱 및 전수 선별 조치로 보완해"],
+    )
+    r_sec4 = rohs_with_ceo.split("📌 4.")[1].split("📌 5.")[0]
+    r_sec5 = rohs_with_ceo.split("📌 5.")[1]
+    assert "LOT-EV-002" in r_sec4 and "LOT-EV-004" in r_sec4 and "LOT-EV-008" in r_sec4
+    assert "오토닉스전장" in r_sec4 and "Line-Stop" in r_sec5 and "전수 선별" in r_sec5 and "신성케미칼" in r_sec5
+
+    # 11-3) 동적 파일명 & 3시트 Executive Excel 검증
+    fn_att = build_export_filename("제목", "xlsx", attached_filename="전장부품_수입검사_RoHS_성적서.csv", session_id="rohs_sess")
+    fn_topic = build_export_filename("월간 수입공정검사 불량률(PPM) 및 CAPA 보고서", "docx", session_id="empty_sess")
+    assert fn_att.startswith("[결재보고서]_전장부품_수입검사_RoHS_성적서_분석_") and fn_att.endswith(".xlsx")
+    assert fn_topic.startswith("[결재보고서]_") and fn_topic.endswith(".docx")
+
+    parse_uploaded_document("전장부품_수입검사_RoHS_성적서.csv", rohs_bytes, session_id="test-xlsx-3sheet")
+    xlsx_3 = build_xlsx_bytes("전장부품 성적서 분석", rohs_with_ceo, session_id="test-xlsx-3sheet")
+    wb_chk = _openpyxl.load_workbook(_io.BytesIO(xlsx_3))
+    assert wb_chk.sheetnames == ["1_최종승인_결재보고서", "2_SPC_및_Audit_Trail_정량표", "3_전수검수_원본데이터"]
+    ws1 = wb_chk["1_최종승인_결재보고서"]
+    assert "최종승인 (신영호 대표)" in str(ws1["D3"].value)
+    print("✔ [기둥 10 통과] 자가중독 차단, 도메인 규격 집중, 전 NG 5-Why/Line-Stop, CEO 반려 지시 본문 반영, 동적 파일명 & 3시트 결재 엑셀 검증 완료")
 
     print("=================================================================")
     print("🎉 [최종 감사 결과: 전 기술 기둥 & 다중 규격 레지스트리 100% 통과 (결함 0건)]")

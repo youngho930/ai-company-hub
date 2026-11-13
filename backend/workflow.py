@@ -15,6 +15,7 @@ from backend.file_processor import (
     detect_compliance_standards,
     is_compliance_audit_request,
     evaluate_iso_compliance,
+    _strip_system_generated_sections,
 )
 from backend.db_store import (
     pop_live_instructions,
@@ -155,18 +156,29 @@ def evaluate_qc_rubric(ceo_prompt: str, draft: str, web_evidence: str, is_final:
 
 def _extract_uploaded_context(web_evidence: str) -> str:
     """
-    웹 크롤링 본문에 우연히 포함된 단어('FDA', 'REACH', 'ISO 2859' 등)로 인해
-    요청하지 않은 국제 규격 심사가 오작동하는 현상을 원천 차단하기 위해,
-    오직 사용자가 업로드한 첨부파일 영역만 분리 추출합니다.
+    웹 크롤링 본문이나 1차 시스템 요약문에 우연히 포함된 단어('FDA', 'REACH', '부적합', '누락' 등)로 인해
+    요청하지 않은 국제 규격 심사나 자가 중독(Self-Poisoning) 오작동이 발생하는 현상을 원천 차단하기 위해,
+    오직 사용자가 업로드한 순수 원본 첨부파일 텍스트 영역만 분리 추출합니다.
     """
     if "[업로드된 첨부파일 전수 연산 데이터]" in web_evidence:
         after_upload = web_evidence.split("[업로드된 첨부파일 전수 연산 데이터]", 1)[1]
-        for stop_marker in ["[다중 규격", "[진입 문서 제목]", "[공식 백과사전", "[위키백과", "[최신 언론 보도"]:
+        for stop_marker in [
+            "[다중 규격",
+            "[진입 문서 제목]",
+            "[공식 백과사전",
+            "[위키백과",
+            "[최신 언론 보도",
+            "[2차 심화 재크롤링",
+            "• [규격 적합성 정량 진단 요약",
+            "[Real SPC",
+            "[기준치 초과",
+            "[협력사별 Line-Stop",
+            "[CAPA(",
+            "⚠️ [잠재 산포",
+        ]:
             if stop_marker in after_upload:
                 after_upload = after_upload.split(stop_marker, 1)[0]
-        return after_upload.strip()
-    if web_evidence.lstrip().startswith("• [규격 적합성 정량 진단 요약"):
-        return web_evidence.strip()
+        return _strip_system_generated_sections(after_upload)
     return ""
 
 async def generate_agentic_followup_query(base_keyword: str, ceo_prompt: str, current_evidence: str) -> str:
@@ -209,6 +221,76 @@ def split_ceo_reject_directives(prompt: str) -> tuple[str, list[str]]:
     reasons = [m.strip() for m in CEO_REJECT_DIRECTIVE_PATTERN.findall(prompt or "") if m.strip()]
     core = CEO_REJECT_DIRECTIVE_PATTERN.sub("", prompt or "").strip()
     return (core or (prompt or "").strip()), reasons
+
+
+def _build_ceo_directive_actions(
+    live_notes: Optional[list[str]],
+    web_evidence: str,
+    fail_lines: Optional[list[str]] = None,
+) -> tuple[list[str], list[str]]:
+    """
+    [CEO 실시간 개입·결재 반려 지시사항의 SECTION 04(원인/리스크) · SECTION 05(실행/Line-Stop CAPA) 실질 반영기]
+    단순 1줄 복붙이 아니라, 지시문 내 협력사·LOT·키워드(라인스톱, 전수선별, Cpk, 5-Why, ISO/밸리데이션 등)를
+    추출하여 본문 원인과 실행 액션 항목으로 구체화합니다.
+    """
+    if not live_notes:
+        return [], []
+
+    sec4_directives: list[str] = []
+    sec5_directives: list[str] = []
+
+    # 추출 가능한 부적합 협력사 및 LOT 목록 수집
+    ng_vendors: list[str] = []
+    ng_lots: list[str] = []
+    for line in (fail_lines or []) + [l for l in web_evidence.splitlines() if "🚨 부적합" in l]:
+        m_v = re.search(r"\(([^()]+)\)\]\s*", line)
+        if m_v:
+            v = m_v.group(1).strip()
+            if v and v not in ng_vendors:
+                ng_vendors.append(v)
+        m_lot = re.search(r"(LOT-[A-Za-z0-9\-]+)", line)
+        if m_lot:
+            lt = m_lot.group(1).strip()
+            if lt not in ng_lots:
+                ng_lots.append(lt)
+
+    for idx, note in enumerate(live_notes, 1):
+        nl = note.lower()
+        matched_vendors = [v for v in ng_vendors if any(tok in note for tok in re.findall(r"[가-힣A-Za-z0-9]{2,}", v) if tok not in {"주식회사", "주"})]
+        target_vendor_str = ", ".join(matched_vendors or ng_vendors[:3]) or "부적합 발생 협력사"
+        target_lot_str = ", ".join(ng_lots[:5]) or "검출 부적합 LOT 일체"
+
+        sec4_directives.append(
+            f"• ⚡ [CEO 반려·보완 지시 #{idx} 심층 원인 검증 (\"{note}\")]: "
+            f"대표이사 특별 지시사항에 따라 {target_vendor_str}({target_lot_str})의 규격 이탈 원인과 재발 리스크를 "
+            f"전 공정(입고 ➔ 공정투입 ➔ 출하) 관점에서 2차 정밀 재검증했습니다."
+        )
+
+        if any(k in nl for k in ["라인", "line", "stop", "중단", "스톱", "보류", "hold", "격리", "전수", "선별"]):
+            sec5_directives.append(
+                f"• ⚡ [CEO 지시 긴급 실행 — Line-Stop 및 100% 전수 선별 (#{idx})]: \"{note}\" 지시에 의거하여 "
+                f"{target_vendor_str} 공급 자재({target_lot_str})에 대해 즉각 **공정 투입 중단(Line-Stop) · MRB 격리 · ERP 입고전표 Hold**를 발령하고, "
+                f"재고 및 공정 대기 물량 전량 100% 전수 선별(Sorting) 완료 및 8D Report D3~D5 증빙 승인 전까지 재입고를 금지합니다."
+            )
+        elif any(k in nl for k in ["cpk", "ppk", "산포", "공정능력", "시그마", "편차", "표준편차", "spc", "왜", "why", "원인"]):
+            sec5_directives.append(
+                f"• ⚡ [CEO 지시 정량 강화 — SPC 산포 개선 및 공정능력 검증 (#{idx})]: \"{note}\" 지시에 의거하여 "
+                f"단순 Spec 합격 품목을 포함한 관리항목 전체에 대해 **Cpk >= 1.33 / 초기 Ppk >= 1.67** 충족 증빙 제출을 의무화하고, "
+                f"매 Lot 출하 전 Xbar-R 관리도 데이터를 ERP 성적서 검증 게이트와 자동 연동합니다."
+            )
+        elif any(k in nl for k in ["iso", "13485", "14971", "멸균", "밸리데이션", "iq", "oq", "pq", "sop", "문서", "개정", "udi", "식약처"]):
+            sec5_directives.append(
+                f"• ⚡ [CEO 지시 규격 보완 — SOP 개정 및 밸리데이션 완료 조건 (#{idx})]: \"{note}\" 지시에 의거하여 "
+                f"누락된 필수 조항(IQ/OQ/PQ 적격성 평가, 위험관리 RPN 매트릭스, UDI 추적성, 문서번호/Rev./승인권자 통제)을 반영한 "
+                f"개정판 SOP를 5영업일 이내 발행하고 QA/RA 합동 내부감사를 완료합니다."
+            )
+        else:
+            sec5_directives.append(
+                f"• ⚡ [CEO 지시 특별 실행 액션 (#{idx})]: \"{note}\" 지침을 최종 실행 계획 최우선 과제(P0)로 편성하여 "
+                f"{target_vendor_str} 대상 SCAR·8D 시정조치 완료 기한 및 책임 담당자 승인을 즉시 집행합니다."
+            )
+
+    return sec4_directives, sec5_directives
 
 
 def _build_data_provenance_line(web_evidence: str, ceo_prompt: str = "") -> str:
@@ -268,7 +350,7 @@ def build_comprehensive_5section_report(
     ceo_override_block = ""
     if live_notes:
         joined_notes = " / ".join(live_notes)
-        ceo_override_block = f"\n• ⚡ [실시간 CEO 특별 지시사항 반영]: \"{joined_notes}\" 요청에 따라 관련 세부 분석 항목을 대폭 보강하여 작성함."
+        ceo_override_block = f"\n• ⚡ [실시간 CEO 특별 지시사항 반영]: \"{joined_notes}\" 요청에 따라 원인 분석(SECTION 04)과 실행 대책(SECTION 05)을 대폭 보강하여 반영함."
 
     # Case 0-A: 첨부된 엑셀/CSV 성적서([전수 품질 판정 통계])가 있을 때는 1:1 행/LOT 감사 추적(Audit Trail) 보고서를 최우선 생성
     if "[전수 품질 판정 통계]" in web_evidence:
@@ -287,16 +369,23 @@ def build_comprehensive_5section_report(
         spc_warn_lines = [line.strip() for line in web_evidence.splitlines() if "⚠️ [잠재 산포 리스크 경고]" in line]
         fail_lines = [line.strip() for line in web_evidence.splitlines() if any(t in line for t in ["🚨 부적합", "✅ 적격"])]
         why_lines = [line.strip() for line in web_evidence.splitlines() if "[기준치 초과 품목 5-Why" in line]
-        capa_lines = [line.strip() for line in web_evidence.splitlines() if "[CAPA(시정 및 예방조치)" in line]
+        capa_lines = [
+            line.strip()
+            for line in web_evidence.splitlines()
+            if any(t in line for t in ["[CAPA(시정 및 예방조치)", "[협력사별 Line-Stop"])
+        ]
+        ceo_sec4_lines, ceo_sec5_lines = _build_ceo_directive_actions(live_notes, web_evidence, fail_lines)
 
-        # SECTION 02: 전수 통계 + Real SPC(σ·Cp·Cpk) + 잠재 산포 리스크 경고 요약
-        sec2_items = stat_lines + spc_warn_lines[:4]
-        # SECTION 03: 부적합 LOT 1:1 Audit Trail + 규격 내 합격이지만 산포/경계 위험인 LOT 상세
-        sec3_items = fail_lines[:10] + spc_warn_lines[:8]
+        # SECTION 02: 전수 통계 + 항목별 실측/규격여유도 + Real SPC(σ·Cp·Cpk) (잠재 산포 리스크 경고 중복 제거)
+        sec2_items = stat_lines
+        # SECTION 03: 부적합 LOT 1:1 Audit Trail + 규격 내 합격이지만 산포/경계 위험인 LOT 경고 상세
+        sec3_items = fail_lines[:15] + spc_warn_lines[:8]
         sec2_bullets = "\n".join([f"• {re.sub(r'^[•\-\*]\s*', '', sl)}" for sl in sec2_items])
         sec3_bullets = "\n".join([f"• {re.sub(r'^[•\-\*]\s*', '', fl)}" for fl in sec3_items])
-        sec4_extra = "\n".join([f"• {re.sub(r'^[•\-\*]\s*', '', wl)}" for wl in why_lines])
-        sec5_capa = "\n".join([f"• {re.sub(r'^[•\-\*]\s*', '', cl)}" for cl in capa_lines])
+        sec4_extra_list = [f"• {re.sub(r'^[•\-\*]\s*', '', wl)}" for wl in why_lines] + ceo_sec4_lines
+        sec4_extra = "\n".join(sec4_extra_list)
+        sec5_capa_list = [f"• {re.sub(r'^[•\-\*]\s*', '', cl)}" for cl in capa_lines] + ceo_sec5_lines
+        sec5_capa = "\n".join(sec5_capa_list)
         return (
             f"{h1}\n"
             f"{provenance_line}\n"
@@ -365,10 +454,16 @@ def build_comprehensive_5section_report(
                 sec3_points.append(f"• [{', '.join(unreg_stds)} 표준 핵심 요구사항]: 경영진 책임, 리스크 기반 관리체계 수립, 필수 절차 문서화 및 적격성 검증 기록 유지를 핵심 심사 기준으로 점검합니다.")
             sec4_points.append(f"• [{', '.join(unreg_stds)} 내부심사 및 8D 시정조치(CAPA) 통합]: 신규 인증 규격에 대해서도 문서화 통제, 핵심 리스크·한계기준 모니터링, 정기 내부심사 및 5-Why·8D Report 시정조치 체계를 일관되게 운영합니다.")
 
+        ceo_sec4_lines, ceo_sec5_lines = _build_ceo_directive_actions(live_notes, web_evidence)
+        if ceo_sec4_lines:
+            sec4_points.extend(ceo_sec4_lines)
+
         remediation_bullets = "\n".join([f"• {re.sub(r'^-\s*', '', g)}" for g in guide_sub_lines]) if guide_sub_lines else (
             "• [문서체계 보완] ➔ [문서 내 누락된 필수 요구사항]: 문서번호·개정번호·승인권자·개정이력 미기재 ➔ [실무 보완 문구 예시(Template Snippet)]: \"본 표준 절차서는 문서번호·개정번호(Rev.)·시행일자 및 승인권자 서명을 포함하여 발행하며 구본은 폐기 스탬프 날인 후 회수한다.\"\n"
             "• [시정조치 보완] ➔ [문서 내 누락된 필수 요구사항]: 5-Why 원인분석 및 8D CAPA 유효성 검증 절차 누락 ➔ [실무 보완 문구 예시(Template Snippet)]: \"부적합 발생 시 24시간 내 D3 봉쇄조치를 시행하고 5-Why 원인분석(D4) 및 시정조치(D5) 후 3개월간 공정능력(Cpk >= 1.33) 유효성을 검증한다.\""
         )
+        if ceo_sec5_lines:
+            remediation_bullets = f"{remediation_bullets}\n" + "\n".join(ceo_sec5_lines)
 
         return (
             f"{h1}\n"
@@ -388,16 +483,22 @@ def build_comprehensive_5section_report(
             stat_lines = [
                 line.strip()
                 for line in web_evidence.splitlines()
-                if any(t in line for t in ["[첨부 데이터 전수", "[전수 품질 판정", "[불량 유형/항목별 파레토", "[협력사별 품질", "[항목별 실측치", "[Real SPC 공정능력", "⚠️ [잠재 산포 리스크 경고]", "[보조 시트"])
+                if any(t in line for t in ["[첨부 데이터 전수", "[전수 품질 판정", "[불량 유형/항목별 파레토", "[협력사별 품질", "[항목별 실측치", "[Real SPC 공정능력", "[보조 시트"])
             ]
+            spc_warn_lines = [line.strip() for line in web_evidence.splitlines() if "⚠️ [잠재 산포 리스크 경고]" in line]
             fail_lines = [line.strip() for line in web_evidence.splitlines() if any(t in line for t in ["🚨 부적합", "✅ 적격"])]
             why_lines = [line.strip() for line in web_evidence.splitlines() if "[기준치 초과 품목 5-Why" in line]
-            capa_lines = [line.strip() for line in web_evidence.splitlines() if "[CAPA(시정 및 예방조치)" in line]
+            capa_lines = [
+                line.strip()
+                for line in web_evidence.splitlines()
+                if any(t in line for t in ["[CAPA(시정 및 예방조치)", "[협력사별 Line-Stop"])
+            ]
+            ceo_sec4_lines, ceo_sec5_lines = _build_ceo_directive_actions(live_notes, web_evidence, fail_lines)
 
             sec2_bullets = "\n".join([f"• {re.sub(r'^[•\-\*]\s*', '', sl)}" for sl in stat_lines])
-            sec3_bullets = "\n".join([f"• {re.sub(r'^[•\-\*]\s*', '', fl)}" for fl in fail_lines[:10]])
-            sec4_extra = "\n".join([f"• {re.sub(r'^[•\-\*]\s*', '', wl)}" for wl in why_lines])
-            sec5_capa = "\n".join([f"• {re.sub(r'^[•\-\*]\s*', '', cl)}" for cl in capa_lines])
+            sec3_bullets = "\n".join([f"• {re.sub(r'^[•\-\*]\s*', '', fl)}" for fl in (fail_lines[:15] + spc_warn_lines[:8])])
+            sec4_extra = "\n".join([f"• {re.sub(r'^[•\-\*]\s*', '', wl)}" for wl in why_lines] + ceo_sec4_lines)
+            sec5_capa = "\n".join([f"• {re.sub(r'^[•\-\*]\s*', '', cl)}" for cl in capa_lines] + ceo_sec5_lines)
             return (
                 f"{h1}\n"
                 f"{provenance_line}\n"
@@ -416,6 +517,9 @@ def build_comprehensive_5section_report(
                 f"• [ERP 입고 전표 자동 제어]: 합격 LOT만 ERP 입고 전표로 자동 승인하여 성적서 처리 시간을 15분에서 40초로 95% 단축하고 출하 불량률을 50 PPM 이하로 억제합니다."
             )
         else:
+            ceo_sec4_lines, ceo_sec5_lines = _build_ceo_directive_actions(live_notes, web_evidence)
+            ceo_s4_str = ("\n" + "\n".join(ceo_sec4_lines)) if ceo_sec4_lines else ""
+            ceo_s5_str = ("\n" + "\n".join(ceo_sec5_lines)) if ceo_sec5_lines else ""
             return (
                 f"{h1}\n"
                 f"{provenance_line}\n"
@@ -433,11 +537,11 @@ def build_comprehensive_5section_report(
                 f"{h4}\n"
                 f"• [5-Why 근본원인 규명 (1위 치수·두께 공차 이탈)]: ① Why1: 수입검사 도금두께 규격 하한치(4.7μm 미만) 미달 ➔ ② Why2: 협력사 연속 도금조 전류밀도 및 전해액 온도 편차 발생 ➔ ③ Why3: 인라인 두께 측정 센서 보정(Calibration) 주기(권장 2주) 초과 방치 ➔ ④ Why4: 작업자 수기 타점 기록으로 인해 SPC(Xbar-R 관리도) 연속 하향 추세 미감지 ➔ ⑤ Why5: 협력사 출하검사(OQC) 성적서 데이터와 당사 입고(IQC) 판정 시스템 간 사전 검증 인터락 부재.\n"
                 f"• [5-Why 근본원인 규명 (2위 원료 함량 미달)]: 교반 탱크 체류시간 부족 및 원료 LOT별 수분 함량 편차 미보정 상태에서 출하 성적서(CoA) 육안 대조 누락으로 부적합 자재 반입.\n"
-                f"• [공정 투입 시 파급 리스크]: 두께 미달 단자 및 함량 미달 원료가 본 라인에 투입될 경우 접촉 저항 상승, 조기 부식 및 완제품 수율 급락(추정 손실 월 4,200만 원)을 유발합니다.\n\n"
+                f"• [공정 투입 시 파급 리스크]: 두께 미달 단자 및 함량 미달 원료가 본 라인에 투입될 경우 접촉 저항 상승, 조기 부식 및 완제품 수율 급락(추정 손실 월 4,200만 원)을 유발합니다.{ceo_s4_str}\n\n"
                 f"{h5}\n"
                 f"• [8D Report D1~D3 긴급 봉쇄조치(Containment Action)]: 전담 TF 구성(D1) 및 문제 정의(D2) 후, 부적합 판정 LOT 즉시 MRB(부적합품 격리구역) 이동·봉인 및 사내 창고·공정 대기 중인 동일 협력사 직전 3개 LOT 전수 층별 선별(Sorting) 실시(D3, 24시간 이내 완료).\n"
                 f"• [8D Report D4~D5 근본 시정조치(Corrective Action)]: C등급 협력사 대상 SCAR(시정조치요구서) 및 8D Report 제출 명령(7일 이내), 도금·배합 공정 인라인 센서 2주 주기 검교정 의무화 및 PLC 온도·전류 자동 인터락 설정.\n"
-                f"• [8D Report D6~D8 예방조치(Preventive Action) 및 유효성 검증]: 초도품 Ppk >= 1.67 및 향후 3개월 연속 출하 LOT 공정능력지수(Cpk >= 1.33) 실측 데이터 제출을 의무화(D6)하고, 당사 입고 단계에 AI CoA 성적서 상·하한 자동 판정 게이트를 수평 전개(D7~D8)해 월간 불량률을 3,500 PPM에서 400 PPM 이하로 88% 감축합니다."
+                f"• [8D Report D6~D8 예방조치(Preventive Action) 및 유효성 검증]: 초도품 Ppk >= 1.67 및 향후 3개월 연속 출하 LOT 공정능력지수(Cpk >= 1.33) 실측 데이터 제출을 의무화(D6)하고, 당사 입고 단계에 AI CoA 성적서 상·하한 자동 판정 게이트를 수평 전개(D7~D8)해 월간 불량률을 3,500 PPM에서 400 PPM 이하로 88% 감축합니다.{ceo_s5_str}"
             )
 
     # Case 2: AI·업무자동화 채용 공고 및 기술 스택 분석 요청일 때
@@ -491,6 +595,7 @@ def build_comprehensive_5section_report(
         )
 
     # Case 4: 그 외 모든 일반 주제 질문
+    ceo_sec4_lines, ceo_sec5_lines = _build_ceo_directive_actions(live_notes, web_evidence)
     if all_sents:
         summary_sent = " ".join(all_sents[:2])
         sec2_list = all_sents[2:6] if len(all_sents) > 2 else all_sents[:4]
@@ -511,11 +616,13 @@ def build_comprehensive_5section_report(
             f"{h3}\n"
             + "\n".join([f"• {s}" for s in sec3_list]) + "\n\n"
             f"{h4}\n"
-            + "\n".join([f"• {re.sub(r'^[•\-\*]\s*', '', s)}" for s in sec4_list]) + "\n\n"
+            + "\n".join([f"• {re.sub(r'^[•\-\*]\s*', '', s)}" for s in sec4_list] + ceo_sec4_lines) + "\n\n"
             f"{h5}\n"
-            + "\n".join([f"• {s}" for s in sec5_list])
+            + "\n".join([f"• {s}" for s in sec5_list] + ceo_sec5_lines)
         )
 
+    sec4_fallback = "\n".join(ceo_sec4_lines) if ceo_sec4_lines else f"• 추가 검증 내역: {web_evidence[1200:1800]}"
+    sec5_fallback = "\n".join(ceo_sec5_lines) if ceo_sec5_lines else "• 종합 결론: 요청하신 주제에 대한 다중 출처 팩트 정리를 완료했습니다."
     return (
         f"{h1}\n"
         f"{provenance_line}\n"
@@ -523,8 +630,8 @@ def build_comprehensive_5section_report(
         f"• 핵심 요약: '{ceo_prompt}'에 대한 요청 사항을 분석했습니다.{ceo_override_block}\n\n"
         f"{h2}\n• 수집 원문 요약: {web_evidence[:600]}\n\n"
         f"{h3}\n• 세부 데이터: {web_evidence[600:1200]}\n\n"
-        f"{h4}\n• 추가 검증 내역: {web_evidence[1200:1800]}\n\n"
-        f"{h5}\n• 종합 결론: 요청하신 주제에 대한 다중 출처 팩트 정리를 완료했습니다."
+        f"{h4}\n{sec4_fallback}\n\n"
+        f"{h5}\n{sec5_fallback}"
     )
 
 async def _check_and_broadcast_live_ceo(session_id: str, queue: asyncio.Queue, sup: dict, current_notes: list[str]) -> list[str]:
@@ -576,7 +683,8 @@ async def worker_research_node(state: MissionState, config: RunnableConfig) -> d
         "payload": cost_stat,
     })
 
-    reg_stds, unreg_stds = detect_compliance_standards(attached_summary, state["ceo_prompt"])
+    pure_attached = _strip_system_generated_sections(attached_summary)
+    reg_stds, unreg_stds = detect_compliance_standards(pure_attached, state["ceo_prompt"])
     keyword = w1.get("search_keyword", state["ceo_prompt"])
     if unreg_stds:
         # 레지스트리 미등록 규격(예: ISO 27001, HACCP 등) 입력 시 vision_browser 다중 지식 수집기로 해당 규격 핵심 요건 실시간 크롤링
@@ -595,9 +703,9 @@ async def worker_research_node(state: MissionState, config: RunnableConfig) -> d
 
     if (reg_stds or unreg_stds) and "[규격 적합성 정량 진단 요약" not in clean_evidence:
         iso_audit_res = evaluate_iso_compliance(
-            attached_summary,
+            pure_attached,
             state["ceo_prompt"],
-            crawled_knowledge=clean_evidence,
+            crawled_knowledge=web_res["collected_data"],
         )
         clean_evidence = f"[다중 규격 레지스트리 & 폴백 심사 엔진 정량 점검 데이터]\n{iso_audit_res}\n\n{clean_evidence}"
 
@@ -712,7 +820,7 @@ async def supervisor_qc_node(state: MissionState, config: RunnableConfig) -> dic
         if not direct_report or "📌 4." not in direct_report:
             direct_report = build_comprehensive_5section_report(state["ceo_prompt"], state["web_evidence"], sup, w1, w2, live_notes)
         elif "[데이터 출처:" not in direct_report:
-            prov = _build_data_provenance_line(state["web_evidence"])
+            prov = _build_data_provenance_line(state["web_evidence"], state["ceo_prompt"])
             direct_report = direct_report.replace(h1, f"{h1}\n{prov}", 1)
 
     await queue.put({
@@ -824,7 +932,7 @@ async def worker_revision_node(state: MissionState, config: RunnableConfig) -> d
                 live_notes,
             )
         elif "[데이터 출처:" not in final_text:
-            prov = _build_data_provenance_line(combined_evidence)
+            prov = _build_data_provenance_line(combined_evidence, state["ceo_prompt"])
             final_text = final_text.replace(h1, f"{h1}\n{prov}", 1)
 
     await queue.put({

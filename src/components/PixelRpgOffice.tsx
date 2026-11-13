@@ -276,32 +276,116 @@ function detectRoomByPoint(x: number, y: number): DeptRoomKey | 'CORRIDOR' {
   return 'CORRIDOR';
 }
 
+function getDoorwayApproachPoint(roomKey: DeptRoomKey): Point {
+  const r = ROOMS[roomKey];
+  const isTopRow = r.ry < CORRIDOR_Y;
+  return {
+    x: r.doorX,
+    y: isTopRow ? r.ry + r.rh - 26 : r.ry + 28,
+  };
+}
+
+function clampWalkablePosition(x: number, y: number): Point {
+  // 1) 복도 영역 [278, 334] 내부면 안전
+  if (y >= 278 && y <= 334) {
+    return { x: Math.max(24, Math.min(CW - 24, x)), y };
+  }
+  // 2) 어느 부서 출입문(문턱 폭 +-24px)을 지나는 중이면 통과 허용
+  for (const r of Object.values(ROOMS)) {
+    if (Math.abs(x - r.doorX) <= 24 && Math.abs(y - r.doorY) <= 36) {
+      return { x: Math.max(r.doorX - 20, Math.min(r.doorX + 20, x)), y };
+    }
+  }
+  // 3) 방 내부 영역으로 클램프하여 벽체 관통 원천 차단
+  for (const r of Object.values(ROOMS)) {
+    if (x >= r.rx - 12 && x <= r.rx + r.rw + 12 && y >= r.ry - 18 && y <= r.ry + r.rh + 18) {
+      return {
+        x: Math.max(r.rx + 16, Math.min(r.rx + r.rw - 16, x)),
+        y: Math.max(r.ry + 18, Math.min(r.ry + r.rh - 14, y)),
+      };
+    }
+  }
+  return { x: Math.max(24, Math.min(CW - 24, x)), y: CORRIDOR_Y };
+}
+
+function pushOrthoPoint(pts: Point[], x: number, y: number) {
+  const rx = Math.round(x);
+  const ry = Math.round(y);
+  const last = pts[pts.length - 1];
+  if (!last || Math.hypot(last.x - rx, last.y - ry) > 1.5) {
+    pts.push({ x: rx, y: ry });
+  }
+}
+
+function appendCorridorSegment(pts: Point[], fromX: number, fromY: number, toX: number, toY: number) {
+  const startRoom = detectRoomByPoint(fromX, fromY);
+  const destRoom = detectRoomByPoint(toX, toY);
+
+  if (startRoom === destRoom) {
+    if (startRoom === 'MEETING_ROOM') {
+      // 중앙 원형 회의 테이블(558, 525) 관통 방지 외곽 우회 경로
+      const safeEdgeY = ROOMS.MEETING_ROOM.ry + 36;
+      if (Math.abs(fromX - toX) > 40 && Math.max(fromY, toY) > 475) {
+        pushOrthoPoint(pts, fromX, safeEdgeY);
+        pushOrthoPoint(pts, toX, safeEdgeY);
+      } else {
+        pushOrthoPoint(pts, toX, fromY);
+      }
+      pushOrthoPoint(pts, toX, toY);
+      return;
+    }
+    pushOrthoPoint(pts, toX, fromY);
+    pushOrthoPoint(pts, toX, toY);
+    return;
+  }
+
+  if (startRoom !== 'CORRIDOR') {
+    const r1 = ROOMS[startRoom];
+    const ap1 = getDoorwayApproachPoint(startRoom);
+    // 방 내부 통로를 따라 출입문 직전(doorX, insideY)으로 직각 이동 후 복도로 진출
+    if (startRoom === 'MEETING_ROOM' && fromY > 475) {
+      pushOrthoPoint(pts, fromX, ap1.y);
+      pushOrthoPoint(pts, ap1.x, ap1.y);
+    } else {
+      pushOrthoPoint(pts, ap1.x, fromY);
+      pushOrthoPoint(pts, ap1.x, ap1.y);
+    }
+    pushOrthoPoint(pts, r1.doorX, r1.doorY);
+    pushOrthoPoint(pts, r1.doorX, CORRIDOR_Y);
+  } else {
+    pushOrthoPoint(pts, fromX, CORRIDOR_Y);
+  }
+
+  if (destRoom !== 'CORRIDOR') {
+    const r2 = ROOMS[destRoom];
+    const ap2 = getDoorwayApproachPoint(destRoom);
+    pushOrthoPoint(pts, r2.doorX, CORRIDOR_Y);
+    pushOrthoPoint(pts, r2.doorX, r2.doorY);
+    pushOrthoPoint(pts, ap2.x, ap2.y);
+
+    if (destRoom === 'MEETING_ROOM') {
+      // 회의실 중앙 테이블 충돌 방지: 상단 통로(y=452) 또는 좌/우 외곽에서 좌석으로 직각 진입
+      const laneY = toY <= 488 ? toY : ROOMS.MEETING_ROOM.ry + 36;
+      pushOrthoPoint(pts, ap2.x, laneY);
+      pushOrthoPoint(pts, toX, laneY);
+    } else {
+      pushOrthoPoint(pts, toX, ap2.y);
+    }
+  } else {
+    pushOrthoPoint(pts, toX, CORRIDOR_Y);
+  }
+
+  pushOrthoPoint(pts, toX, toY);
+}
+
 function buildSmartCorridorPath(curX: number, curY: number, target: Point, via?: Point): Point[] {
   const pts: Point[] = [];
-  const startRoom = detectRoomByPoint(curX, curY);
-  const destRoom = detectRoomByPoint(target.x, target.y);
-
   if (via) {
-    pts.push({ x: via.x, y: via.y });
+    appendCorridorSegment(pts, curX, curY, via.x, via.y);
+    appendCorridorSegment(pts, via.x, via.y, target.x, target.y);
+  } else {
+    appendCorridorSegment(pts, curX, curY, target.x, target.y);
   }
-
-  if (startRoom !== destRoom) {
-    if (startRoom !== 'CORRIDOR') {
-      const r1 = ROOMS[startRoom];
-      pts.push({ x: r1.doorX, y: r1.doorY });
-      pts.push({ x: r1.doorX, y: CORRIDOR_Y });
-    } else {
-      pts.push({ x: curX, y: CORRIDOR_Y });
-    }
-
-    if (destRoom !== 'CORRIDOR') {
-      const r2 = ROOMS[destRoom];
-      pts.push({ x: r2.doorX, y: CORRIDOR_Y });
-      pts.push({ x: r2.doorX, y: r2.doorY });
-    }
-  }
-
-  pts.push({ x: target.x, y: target.y });
   return pts;
 }
 
@@ -1275,6 +1359,14 @@ export default function PixelRpgOffice({
         ctx.lineWidth = 1.3;
         ctx.stroke();
 
+        // 듀얼 보조 모니터 (좌측)
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.roundRect(dx - 34, dy + 2, 16, 11, 2);
+        ctx.fill();
+        ctx.fillStyle = isWorking ? '#1e3a5f' : '#334155';
+        ctx.fillRect(dx - 32.5, dy + 3.5, 13, 8);
+
         ctx.fillStyle = '#334155';
         ctx.beginPath();
         ctx.roundRect(dx - 13, dy + 1.5, 26, 10, 2);
@@ -1284,12 +1376,46 @@ export default function PixelRpgOffice({
         ctx.fillRect(dx - 3, dy + 14, 6, 4);
         ctx.fillRect(dx - 9, dy + 17, 18, 2.5);
 
+        // 책상 커피 머그컵 & 김 모락모락 애니메이션
+        ctx.fillStyle = '#f8fafc';
+        ctx.beginPath();
+        ctx.roundRect(dx + 22, dy + 14, 6.5, 6, 1.5);
+        ctx.fill();
+        ctx.strokeStyle = '#64748b';
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+        ctx.fillStyle = '#78350f';
+        ctx.fillRect(dx + 23, dy + 14.5, 4.5, 1.8);
+        if (isWorking || isSelectedRoom) {
+          const steamShift = Math.sin(f * 0.09 + dx) * 1.6;
+          const steamLift = (f * 0.25) % 6;
+          ctx.strokeStyle = 'rgba(241, 245, 249, 0.55)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(dx + 25, dy + 13 - steamLift * 0.4);
+          ctx.quadraticCurveTo(dx + 25 + steamShift, dy + 9 - steamLift * 0.5, dx + 25 - steamShift * 0.5, dy + 5 - steamLift);
+          ctx.stroke();
+        }
+
         if (isWorking) {
-          const lineY = f % 8;
+          // 실시간 코딩/차트 스크롤 애니메이션
+          const scroll = Math.floor(f / 4) % 4;
+          const barW1 = 10 + ((f + dx) % 11);
+          const barW2 = 8 + ((f * 2 + dy) % 13);
           ctx.fillStyle = '#34d399';
-          ctx.fillRect(dx - 10, dy + 3.5 + (lineY % 4), 14, 1.8);
+          ctx.fillRect(dx - 11, dy + 3 + (scroll % 2) * 1.5, barW1, 1.8);
           ctx.fillStyle = '#38bdf8';
-          ctx.fillRect(dx - 10, dy + 8.5, 20, 1.8);
+          ctx.fillRect(dx - 11, dy + 6.2, barW2, 1.8);
+          ctx.fillStyle = '#facc15';
+          ctx.fillRect(dx - 11, dy + 9.2, 6 + (f % 8), 1.5);
+
+          // 보조 모니터 실시간 파형 바 차트
+          ctx.fillStyle = '#38bdf8';
+          ctx.fillRect(dx - 31, dy + 9 - ((f >> 2) % 4), 2.5, 2 + ((f >> 2) % 4));
+          ctx.fillStyle = '#34d399';
+          ctx.fillRect(dx - 27, dy + 9 - (((f + 5) >> 2) % 4), 2.5, 2 + (((f + 5) >> 2) % 4));
+          ctx.fillStyle = '#f472b6';
+          ctx.fillRect(dx - 23, dy + 9 - (((f + 9) >> 2) % 4), 2.5, 2 + (((f + 9) >> 2) % 4));
         }
         return;
       }
@@ -1411,7 +1537,7 @@ export default function PixelRpgOffice({
       ctx.fillStyle = ag.role === 'CEO' ? '#dc2626' : ag.role === 'SUPERVISOR' ? '#d97706' : '#2563eb';
       ctx.fillRect(cx - 1.1, cy - 4.2, 2.2, 6);
 
-      const armOffset = isWorkingDesk ? Math.round(Math.sin(f * 0.45 + idx) * 2.2) : Math.round(walkCycle * 2.2);
+      const armOffset = isWorkingDesk ? Math.round(Math.sin(f * 0.58 + idx) * 2.6) : Math.round(walkCycle * 2.2);
       ctx.fillStyle = ag.shirtColor;
       ctx.beginPath();
       ctx.roundRect(cx - 14.5, cy - 4.5 + armOffset, 4.5, 8.5, 2.5);
@@ -1420,6 +1546,15 @@ export default function PixelRpgOffice({
       ctx.strokeStyle = '#1e1b18';
       ctx.lineWidth = 1;
       ctx.stroke();
+
+      // 타자 치는 손목/손끝 모션 (책상 업무 중일 때 활발한 타이핑 표현)
+      if (isWorkingDesk) {
+        ctx.fillStyle = '#fde2c8';
+        ctx.beginPath();
+        ctx.arc(cx - 11.5, cy + 5.2 + armOffset, 2.1, 0, Math.PI * 2);
+        ctx.arc(cx + 11.5, cy + 5.2 - armOffset, 2.1, 0, Math.PI * 2);
+        ctx.fill();
+      }
 
       ctx.fillStyle = '#fde2c8';
       ctx.beginPath();
@@ -1624,12 +1759,31 @@ export default function PixelRpgOffice({
         }
       }
 
-      if (ag.carryingBook) {
-        ctx.fillStyle = '#fef08a';
-        ctx.fillRect(cx + 8, cy - 8, 12, 14);
-        ctx.strokeStyle = '#ca8a04';
-        ctx.lineWidth = 1.5;
-        ctx.strokeRect(cx + 8, cy - 8, 12, 14);
+      const inMeetingRoom = detectRoomByPoint(ag.x, ag.y) === 'MEETING_ROOM' && !isWalking;
+      const headingToMeeting =
+        isWalking && ag.waypoints.some((wp) => wp.x >= 390 && wp.x <= 730 && wp.y >= 338);
+
+      if (ag.carryingBook || headingToMeeting) {
+        // 보고서 바인더 / 디지털 태블릿 운반 연출
+        ctx.fillStyle = headingToMeeting ? '#1e3a8a' : '#fef08a';
+        ctx.fillRect(cx + 8, cy - 7, 11, 13);
+        ctx.strokeStyle = headingToMeeting ? '#60a5fa' : '#ca8a04';
+        ctx.lineWidth = 1.4;
+        ctx.strokeRect(cx + 8, cy - 7, 11, 13);
+        if (headingToMeeting) {
+          ctx.fillStyle = '#fbbf24';
+          ctx.fillRect(cx + 10.5, cy - 4, 6, 2);
+          ctx.fillStyle = '#e2e8f0';
+          ctx.fillRect(cx + 10.5, cy - 0.5, 6, 1.5);
+        }
+      } else if (inMeetingRoom && ag.isSelectedTeam && ag.role !== 'CEO') {
+        // 회의실 착석 시 브리핑 태블릿/서류 펼침 연출
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.roundRect(cx - 8, cy + 5, 16, 8, 2);
+        ctx.fill();
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillRect(cx - 6, cy + 6.5, 12, 5);
       }
 
       ctx.restore();
@@ -2033,7 +2187,7 @@ export default function PixelRpgOffice({
             ag.facing = dy < 0 ? 'UP' : 'DOWN';
           }
 
-          if (dist <= Math.max(1.2, desiredSpeed)) {
+          if (dist <= Math.max(1.8, desiredSpeed + 0.4)) {
             ag.x = nextPt.x;
             ag.y = nextPt.y;
             ag.vx = 0;
@@ -2050,10 +2204,12 @@ export default function PixelRpgOffice({
           } else {
             const targetVx = (dx / dist) * desiredSpeed;
             const targetVy = (dy / dist) * desiredSpeed;
-            ag.vx = ag.vx * 0.65 + targetVx * 0.35;
-            ag.vy = ag.vy * 0.65 + targetVy * 0.35;
-            ag.x += ag.vx;
-            ag.y += ag.vy;
+            // 직각 코너 오버슈트/벽 관통 방지를 위해 빠른 반응형 보간 + 영역 클램핑 적용
+            ag.vx = ag.vx * 0.22 + targetVx * 0.78;
+            ag.vy = ag.vy * 0.22 + targetVy * 0.78;
+            const clamped = clampWalkablePosition(ag.x + ag.vx, ag.y + ag.vy);
+            ag.x = clamped.x;
+            ag.y = clamped.y;
             walking = true;
 
             if (ag.isSelectedTeam && f % 3 === 0) {
