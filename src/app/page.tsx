@@ -605,6 +605,13 @@ export default function MissionControlPage() {
           setUploadedFileName(data.filename);
           setUploadedPreview(data.preview || '');
           setPrompt(`첨부한 '${data.filename}' 파일의 핵심 수치와 내용을 분석해서 표준 의사결정 보고서 양식으로 통합·요약해줘`);
+          if (finalReport) {
+            resetMission(Boolean(manualTeam));
+            setIsAllGathered(false);
+            setIsReportModalOpen(false);
+            setApprovalStatus('PENDING');
+            setApprovedAt('');
+          }
         }
       } catch {
         alert('백엔드 서버(8000번 포트)가 켜져 있는지 확인해 주세요.');
@@ -825,6 +832,9 @@ export default function MissionControlPage() {
     setExpandedLogs({});
     setSelectedFrameIdx(-1);
     setIsAllGathered(false);
+    setIsReportModalOpen(false);
+    setApprovalStatus('PENDING');
+    setApprovedAt('');
     if (isReplayMode) {
       const q1 = buildReplayQuery({ phase: '1' });
       streamSSE('/api/mission/replay?' + q1);

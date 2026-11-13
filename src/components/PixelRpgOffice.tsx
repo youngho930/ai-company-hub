@@ -71,6 +71,8 @@ interface OfficeStaff {
   bubbleAnim: number;
   progress: number;
   appliedPhase: number;
+  stuckFrames: number;
+  lastWaypointDist: number;
 }
 
 interface HoveredStaffInfo {
@@ -286,26 +288,12 @@ function getDoorwayApproachPoint(roomKey: DeptRoomKey): Point {
 }
 
 function clampWalkablePosition(x: number, y: number): Point {
-  // 1) 복도 영역 [278, 334] 내부면 안전
-  if (y >= 278 && y <= 334) {
-    return { x: Math.max(24, Math.min(CW - 24, x)), y };
-  }
-  // 2) 어느 부서 출입문(문턱 폭 +-24px)을 지나는 중이면 통과 허용
-  for (const r of Object.values(ROOMS)) {
-    if (Math.abs(x - r.doorX) <= 24 && Math.abs(y - r.doorY) <= 36) {
-      return { x: Math.max(r.doorX - 20, Math.min(r.doorX + 20, x)), y };
-    }
-  }
-  // 3) 방 내부 영역으로 클램프하여 벽체 관통 원천 차단
-  for (const r of Object.values(ROOMS)) {
-    if (x >= r.rx - 12 && x <= r.rx + r.rw + 12 && y >= r.ry - 18 && y <= r.ry + r.rh + 18) {
-      return {
-        x: Math.max(r.rx + 16, Math.min(r.rx + r.rw - 16, x)),
-        y: Math.max(r.ry + 18, Math.min(r.ry + r.rh - 14, y)),
-      };
-    }
-  }
-  return { x: Math.max(24, Math.min(CW - 24, x)), y: CORRIDOR_Y };
+  // buildSmartCorridorPath가 이미 직각 복도·출입문 경로를 생성하므로,
+  // 출입문 문턱 데드락을 원천 차단하기 위해 캔버스 외곽 안전 경계만 적용합니다.
+  return {
+    x: Math.max(16, Math.min(CW - 16, x)),
+    y: Math.max(18, Math.min(CH - 16, y)),
+  };
 }
 
 function pushOrthoPoint(pts: Point[], x: number, y: number) {
@@ -436,8 +424,9 @@ export default function PixelRpgOffice({
   const archiveHitFlashRef = useRef<number>(0);
   const ceoWaveFlashRef = useRef<number>(0);
 
-  const { nodes, messages, finalReport } = useOfficeStore();
+  const { missionRunId, nodes, messages, finalReport } = useOfficeStore();
   const hasFinalReportRef = useRef<boolean>(false);
+  const lastMissionRunIdRef = useRef<number>(missionRunId);
 
   // /office_bg.png 비동기 우선 로드 및 /office_bg.jpg 폴백 처리
   useEffect(() => {
@@ -501,6 +490,8 @@ export default function PixelRpgOffice({
         bubbleAnim: 1,
         progress: 0,
         appliedPhase: 0,
+        stuckFrames: 0,
+        lastWaypointDist: Infinity,
       };
     });
     staffRef.current = map;
@@ -525,6 +516,7 @@ export default function PixelRpgOffice({
     if (Object.keys(map).length === 0) return;
 
     const hasStarted = messages.length > 0;
+    const isNewMission = missionRunId !== lastMissionRunIdRef.current;
     const hasRejected = messages.some((m) => m.type === 'QC_REJECT');
     const isArchiveHit = messages.some(
       (m) => String(m.type) === 'ARCHIVE_HIT' || (m.payload?.text || '').includes('부서 책장(서가) 기존 기록 발견')
@@ -533,14 +525,19 @@ export default function PixelRpgOffice({
       (m) => String(m.type) === 'CEO_LIVE_INTERVENTION' || (m.payload?.text || '').includes('실시간 CEO 긴급 지침')
     );
     const isMissionFinished = Boolean(finalReport);
+    hasFinalReportRef.current = isMissionFinished;
 
-    if (hasLiveCeo) {
-      ceoWaveFlashRef.current = 120;
-    }
-
-    if (!hasStarted) {
-      setPhaseBanner('🏢 전 부서(5개 팀 16명) 각자 사무실에서 일상 근무 대기 중');
+    if (isNewMission || !hasStarted) {
+      lastMissionRunIdRef.current = missionRunId;
       trailsRef.current = [];
+      particlesRef.current = [];
+      archiveHitFlashRef.current = 0;
+      ceoWaveFlashRef.current = 0;
+      reportUnlockedRef.current = false;
+      reportBannerAnimRef.current = 0;
+      setReportUnlocked(false);
+      onAllGatheredChange?.(false);
+
       Object.values(map).forEach((st) => {
         st.isSelectedTeam = st.role === 'CEO';
         st.isShelfMode = false;
@@ -551,15 +548,27 @@ export default function PixelRpgOffice({
         st.y = st.homePos.y;
         st.vx = 0;
         st.vy = 0;
+        st.facing = 'DOWN';
         st.workTimer = 0;
+        st.maxWorkTimer = 120;
         st.progress = 0;
         st.activeBubble = '';
         st.lastBubbleText = '';
         st.bubbleAnim = 0;
         st.taskLabel = st.role === 'CEO' ? '총괄 결재 대기' : '부서 일상 대기';
         st.appliedPhase = 0;
+        st.stuckFrames = 0;
+        st.lastWaypointDist = Infinity;
       });
-      return;
+
+      if (!hasStarted) {
+        setPhaseBanner('🏢 전 부서(5개 팀 16명) 각자 사무실에서 일상 근무 대기 중');
+        return;
+      }
+    }
+
+    if (hasLiveCeo) {
+      ceoWaveFlashRef.current = 120;
     }
 
     const activeNonCeo = nodes.filter((n) => n.id !== 'ceo');
@@ -800,7 +809,7 @@ export default function PixelRpgOffice({
           }
         }
       });
-  }, [nodes, messages, finalReport, reportUnlocked]);
+  }, [nodes, messages, finalReport, reportUnlocked, missionRunId]);
 
   const handleCanvasPos = (e: React.MouseEvent<HTMLCanvasElement>, isClick: boolean) => {
     if (!canvasRef.current) return;
@@ -2166,6 +2175,8 @@ export default function PixelRpgOffice({
           if (nextSt.isShelfLookup) {
             ag.carryingBook = true;
           }
+          ag.stuckFrames = 0;
+          ag.lastWaypointDist = Infinity;
           ag.waypoints = buildSmartCorridorPath(ag.x, ag.y, nextSt.target, nextSt.via);
         }
 
@@ -2181,17 +2192,26 @@ export default function PixelRpgOffice({
           const decelFactor = isFinalWaypoint ? Math.min(1, Math.max(0.32, dist / 34)) : Math.min(1, Math.max(0.55, dist / 18));
           const desiredSpeed = baseMaxSpeed * decelFactor;
 
+          if (ag.lastWaypointDist - dist < 0.15) {
+            ag.stuckFrames += 1;
+          } else {
+            ag.stuckFrames = 0;
+          }
+          ag.lastWaypointDist = dist;
+
           if (Math.abs(dx) > Math.abs(dy)) {
             ag.facing = dx < 0 ? 'LEFT' : 'RIGHT';
           } else {
             ag.facing = dy < 0 ? 'UP' : 'DOWN';
           }
 
-          if (dist <= Math.max(1.8, desiredSpeed + 0.4)) {
+          if (dist <= Math.max(2.2, desiredSpeed + 0.6) || ag.stuckFrames >= 45) {
             ag.x = nextPt.x;
             ag.y = nextPt.y;
             ag.vx = 0;
             ag.vy = 0;
+            ag.stuckFrames = 0;
+            ag.lastWaypointDist = Infinity;
             ag.waypoints.shift();
             if (ag.waypoints.length === 0) {
               ag.facing =
@@ -2204,7 +2224,6 @@ export default function PixelRpgOffice({
           } else {
             const targetVx = (dx / dist) * desiredSpeed;
             const targetVy = (dy / dist) * desiredSpeed;
-            // 직각 코너 오버슈트/벽 관통 방지를 위해 빠른 반응형 보간 + 영역 클램핑 적용
             ag.vx = ag.vx * 0.22 + targetVx * 0.78;
             ag.vy = ag.vy * 0.22 + targetVy * 0.78;
             const clamped = clampWalkablePosition(ag.x + ag.vx, ag.y + ag.vy);

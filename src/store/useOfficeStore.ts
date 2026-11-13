@@ -8,6 +8,7 @@ export interface BrowserFrameItem {
 }
 
 interface OfficeState {
+  missionRunId: number;
   nodes: Node[];
   edges: Edge[];
   messages: AgentEvent[];
@@ -22,6 +23,7 @@ interface OfficeState {
 }
 
 export const useOfficeStore = create<OfficeState>((set) => ({
+  missionRunId: 0,
   nodes: [],
   edges: [],
   messages: [],
@@ -34,6 +36,7 @@ export const useOfficeStore = create<OfficeState>((set) => ({
   clearHitl: () => set({ hitlData: null }),
   resetMission: (preserveTeam = false) =>
     set((state) => ({
+      missionRunId: state.missionRunId + 1,
       nodes: preserveTeam
         ? state.nodes.map((n) => ({ ...n, data: { ...n.data, status: n.id === 'ceo' ? 'DONE' : 'IDLE' } }))
         : [],
