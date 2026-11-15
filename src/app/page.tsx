@@ -1007,6 +1007,7 @@ export default function MissionControlPage() {
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-slate-950 text-slate-100 select-none">
       <header className="shrink-0 px-5 py-2.5 bg-slate-900/90 backdrop-blur-md border-b border-slate-800/80 space-y-2 shadow-[0_8px_30px_rgba(0,0,0,0.45)] z-30">
+        {/* 1단 Top Bar: 좌측 [로고 + 뷰 탭 + 4대 테마 스위처] / 우측 [비용·LLM·ERP·보관함·웹·로그 상태 독] */}
         <div className="flex flex-wrap items-center justify-between gap-2.5">
           <div className="flex flex-wrap items-center gap-2 shrink-0">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950/75 backdrop-blur-md border border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]">
@@ -1077,61 +1078,7 @@ export default function MissionControlPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-1 min-w-[340px] max-w-3xl">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".xlsx,.xls,.csv,.pdf,.txt,.md,.json"
-              onChange={handleFileUpload}
-              className="hidden"
-            />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className={`px-3 py-2 text-xs font-bold rounded-xl border backdrop-blur-md transition-all duration-300 ease-out shrink-0 ${
-                uploadedFileName
-                  ? 'bg-sky-500/20 border-sky-400/80 text-sky-300 shadow-[0_0_15px_rgba(56,189,248,0.3)] hover:bg-sky-500/30'
-                  : 'bg-slate-950/70 border-white/15 text-slate-300 hover:border-sky-400/60 hover:bg-slate-900/80 hover:-translate-y-0.5'
-              }`}
-            >
-              {uploadedFileName ? `📎 ${uploadedFileName.slice(0, 14)}` : '📎 파일 첨부'}
-            </button>
-            {uploadedFileName && (
-              <button
-                onClick={handleClearUpload}
-                className="px-2 py-1.5 text-[10px] font-bold bg-rose-950/80 backdrop-blur-md border border-rose-500/50 text-rose-300 rounded-lg hover:bg-rose-900/80 transition-all duration-300 ease-out"
-                title="첨부 해제"
-              >
-                ✕
-              </button>
-            )}
-
-            <input
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && startMission()}
-              placeholder="업무 지시 입력 (동일 질문은 뒤쪽 책장에서 즉시 인출하며, '다시 찾아줘' 입력 시 새로 크롤링합니다)"
-              className="w-full px-3.5 py-2 text-xs bg-slate-950/80 backdrop-blur-md border border-white/15 rounded-xl text-slate-100 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30 transition-all duration-300 ease-out"
-            />
-            <button
-              onClick={() => startMission()}
-              disabled={isStreaming}
-              className="px-4 py-2 text-xs font-extrabold bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 hover:-translate-y-0.5 active:translate-y-0 text-white rounded-xl shrink-0 shadow-[0_4px_20px_rgba(16,185,129,0.35)] hover:shadow-[0_6px_25px_rgba(16,185,129,0.55)] transition-all duration-300 ease-out"
-            >
-              {isStreaming ? '⏳ 수행 중' : '▶️ 업무 하달'}
-            </button>
-            <button
-              onClick={() => {
-                const cleanBase = prompt.replace(/다시\s*찾아줘|새로\s*찾아줘/g, '').trim();
-                startMission(`${cleanBase} 다시 찾아줘`);
-              }}
-              title="서가(책장) 캐시를 무시하고 웹에서 새로 크롤링합니다"
-              className="px-3 py-2 text-xs font-bold bg-indigo-600/85 hover:bg-indigo-500 hover:-translate-y-0.5 active:translate-y-0 backdrop-blur-md text-white rounded-xl shrink-0 border border-indigo-400/40 shadow-[0_4px_15px_rgba(99,102,241,0.3)] transition-all duration-300 ease-out"
-            >
-              🔄 다시 찾아줘
-            </button>
-          </div>
-
-          <div className="flex items-center gap-1.5 text-xs shrink-0">
+          <div className="flex flex-wrap items-center gap-1.5 text-xs shrink-0">
             <button
               onClick={() => {
                 refreshCostMetrics();
@@ -1197,7 +1144,62 @@ export default function MissionControlPage() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-3 pt-0.5">
+        {/* 2단 Wide Command Bar: 파일 첨부 + 전폭 와이드 업무 지시 입력창 + 실행/재탐색 버튼 */}
+        <div className="flex items-center gap-2 w-full">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx,.xls,.csv,.pdf,.txt,.md,.json"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className={`px-3 py-2 text-xs font-bold rounded-xl border backdrop-blur-md transition-all duration-300 ease-out shrink-0 ${
+              uploadedFileName
+                ? 'bg-sky-500/20 border-sky-400/80 text-sky-300 shadow-[0_0_15px_rgba(56,189,248,0.3)] hover:bg-sky-500/30'
+                : 'bg-slate-950/70 border-white/15 text-slate-300 hover:border-sky-400/60 hover:bg-slate-900/80 hover:-translate-y-0.5'
+            }`}
+          >
+            {uploadedFileName ? `📎 ${uploadedFileName.slice(0, 18)}` : '📎 파일 첨부'}
+          </button>
+          {uploadedFileName && (
+            <button
+              onClick={handleClearUpload}
+              className="px-2 py-1.5 text-[10px] font-bold bg-rose-950/80 backdrop-blur-md border border-rose-500/50 text-rose-300 rounded-lg hover:bg-rose-900/80 transition-all duration-300 ease-out shrink-0"
+              title="첨부 해제"
+            >
+              ✕
+            </button>
+          )}
+
+          <input
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && startMission()}
+            placeholder="업무 지시 입력 (동일 질문은 뒤쪽 책장에서 즉시 인출하며, '다시 찾아줘' 입력 시 새로 크롤링합니다)"
+            className="flex-1 min-w-[420px] px-4 py-2 text-xs font-medium bg-slate-950/85 backdrop-blur-md border border-white/15 rounded-xl text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30 transition-all duration-300 ease-out"
+          />
+          <button
+            onClick={() => startMission()}
+            disabled={isStreaming}
+            className="px-4 py-2 text-xs font-extrabold bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 hover:-translate-y-0.5 active:translate-y-0 text-white rounded-xl shrink-0 shadow-[0_4px_20px_rgba(16,185,129,0.35)] hover:shadow-[0_6px_25px_rgba(16,185,129,0.55)] transition-all duration-300 ease-out"
+          >
+            {isStreaming ? '⏳ 수행 중' : '▶️ 업무 하달'}
+          </button>
+          <button
+            onClick={() => {
+              const cleanBase = prompt.replace(/다시\s*찾아줘|새로\s*찾아줘/g, '').trim();
+              startMission(`${cleanBase} 다시 찾아줘`);
+            }}
+            title="서가(책장) 캐시를 무시하고 웹에서 새로 크롤링합니다"
+            className="px-3 py-2 text-xs font-bold bg-indigo-600/85 hover:bg-indigo-500 hover:-translate-y-0.5 active:translate-y-0 backdrop-blur-md text-white rounded-xl shrink-0 border border-indigo-400/40 shadow-[0_4px_15px_rgba(99,102,241,0.3)] transition-all duration-300 ease-out"
+          >
+            🔄 다시 찾아줘
+          </button>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-2.5 pt-0.5">
           <div className="flex items-center gap-1.5 overflow-x-auto">
             <span className="text-[11px] font-bold text-slate-400 shrink-0">💡 원클릭 시나리오:</span>
             {PRESET_SCENARIOS.map((item, idx) => (

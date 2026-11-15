@@ -990,24 +990,45 @@ export default function PixelRpgOffice({
       ctx.roundRect(dx - 9, dy - 24, 18, 4.5, 2.2);
       ctx.fill();
 
-      if (!isOccupiedAtDesk) {
-        const tagY = dy + 25;
-        ctx.fillStyle = room.bgFloorTone;
-        ctx.beginPath();
-        ctx.roundRect(dx - 57, tagY - 1, 114, 29, 7);
-        ctx.fill();
+      // [원본 배경 '이름 (대기)' 박스 100% 완전 소거 패치]
+      // 책상 좌표 기준 (dx - 55 ~ dx + 55, dy + 10 ~ dy + 50) 영역을 착석 여부와 무관하게
+      // 방 바닥 카펫/마루 톤 그라데이션으로 빈틈없이 덮어 원본 배경의 이름표 삐져나옴을 원천 차단
+      const maskX = Math.round(dx - 55);
+      const maskY = Math.round(dy + 10);
+      const maskW = 110;
+      const maskH = 40;
+      const nameEraseGrad = ctx.createLinearGradient(dx, maskY, dx, maskY + maskH);
+      nameEraseGrad.addColorStop(0, room.bgFloorTone);
+      nameEraseGrad.addColorStop(0.65, room.bgFloorTone);
+      nameEraseGrad.addColorStop(1, room.bgFloorShadow);
+      ctx.fillStyle = nameEraseGrad;
+      ctx.beginPath();
+      ctx.roundRect(maskX, maskY, maskW, maskH, 7);
+      ctx.fill();
 
-        ctx.fillStyle = 'rgba(9, 13, 22, 0.88)';
+      // 미세 바닥 타일/마루 이음선 보정으로 자연스러운 블렌딩
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(maskX + 4, maskY + 18);
+      ctx.lineTo(maskX + maskW - 4, maskY + 18);
+      ctx.moveTo(maskX + 4, maskY + 31);
+      ctx.lineTo(maskX + maskW - 4, maskY + 31);
+      ctx.stroke();
+
+      if (!isOccupiedAtDesk) {
+        const tagY = Math.round(dy + 25);
+        ctx.fillStyle = 'rgba(9, 13, 22, 0.9)';
         ctx.beginPath();
-        ctx.roundRect(dx - 46, tagY + 3, 92, 20, 10);
+        ctx.roundRect(Math.round(dx - 46), tagY + 2, 92, 19, 9.5);
         ctx.fill();
-        ctx.strokeStyle = 'rgba(148, 163, 184, 0.5)';
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.55)';
         ctx.lineWidth = 1.1;
         ctx.stroke();
         ctx.fillStyle = '#e2e8f0';
         ctx.font = `700 9.5px ${FONT_FAMILY}`;
         ctx.textAlign = 'center';
-        ctx.fillText('🪑 자리 이동 중', dx, tagY + 16.5);
+        ctx.fillText('🪑 자리 이동 중', Math.round(dx), Math.round(tagY + 15));
       }
 
       ctx.restore();
@@ -2758,18 +2779,69 @@ export default function PixelRpgOffice({
           drawDesk(ctx, d.x, d.y, busy, isSelectedRoom, f, bgLoaded, activeTheme);
         });
 
-        if (!bgLoaded) {
-          ctx.fillStyle = 'rgba(9, 13, 22, 0.95)';
+        if (!bgLoaded || activeTheme !== 'classic') {
+          const plaqueLabels: Record<DeptRoomKey, string> = {
+            HR_ROOM: '👥 리서치·인사팀',
+            DEV_ROOM: '💻 AI·SW개발팀',
+            QA_ROOM: '⚙️ 품질·생산QA팀',
+            FIN_ROOM: '📊 재무·데이터팀',
+            MEETING_ROOM: '🏛️ 중앙 결재·회의실',
+            MKT_ROOM: '📣 마케팅·전략팀',
+          };
+          const px = Math.round(r.rx + 14);
+          const py = Math.round(r.ry + 10);
+          const pw = 152;
+          const ph = 25;
+
+          ctx.save();
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.72)';
+          ctx.shadowBlur = 6;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 2;
+
+          ctx.fillStyle = '#0f172a';
           ctx.beginPath();
-          ctx.roundRect(r.rx + 10, r.ry + 8, 138, 23, 6);
+          ctx.roundRect(px, py, pw, ph, 7);
           ctx.fill();
-          ctx.strokeStyle = r.badgeColor;
+
+          ctx.shadowBlur = 0;
+          ctx.shadowColor = 'transparent';
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 0;
+
+          if (activeTheme === 'space') {
+            ctx.strokeStyle = isSelectedRoom ? '#67e8f9' : '#22d3ee';
+          } else if (activeTheme === 'factory') {
+            ctx.strokeStyle = isSelectedRoom ? '#6ee7b7' : '#10b981';
+          } else if (activeTheme === 'quantum') {
+            const qGrad = ctx.createLinearGradient(px, py, px + pw, py);
+            qGrad.addColorStop(0, '#c084fc');
+            qGrad.addColorStop(1, '#fbbf24');
+            ctx.strokeStyle = qGrad;
+          } else {
+            ctx.strokeStyle = r.badgeColor;
+          }
           ctx.lineWidth = 1.6;
           ctx.stroke();
-          ctx.fillStyle = '#ffffff';
+
+          // 좌측 테마 컬러 포인트 바
+          ctx.fillStyle =
+            activeTheme === 'space'
+              ? '#22d3ee'
+              : activeTheme === 'factory'
+              ? '#10b981'
+              : activeTheme === 'quantum'
+              ? '#fbbf24'
+              : r.badgeColor;
+          ctx.beginPath();
+          ctx.roundRect(px + 4, py + 5, 3, ph - 10, 1.5);
+          ctx.fill();
+
+          ctx.fillStyle = '#f8fafc';
           ctx.font = `800 11.5px ${FONT_FAMILY}`;
           ctx.textAlign = 'center';
-          ctx.fillText(r.title, r.rx + 79, r.ry + 23.5);
+          ctx.fillText(plaqueLabels[rKey] || r.title, Math.round(px + pw / 2 + 2), Math.round(py + 16.5));
+          ctx.restore();
         }
       });
 
