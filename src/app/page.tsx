@@ -1178,7 +1178,7 @@ export default function MissionControlPage() {
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && startMission()}
             placeholder="업무 지시 입력 (동일 질문은 뒤쪽 책장에서 즉시 인출하며, '다시 찾아줘' 입력 시 새로 크롤링합니다)"
-            className="flex-1 min-w-[420px] px-4 py-2 text-xs font-medium bg-slate-950/85 backdrop-blur-md border border-white/15 rounded-xl text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30 transition-all duration-300 ease-out"
+            className="flex-1 min-w-[380px] px-4 py-2 text-sm font-medium bg-slate-950/85 backdrop-blur-md border border-white/15 rounded-xl text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30 transition-all duration-300 ease-out"
           />
           <button
             onClick={() => startMission()}

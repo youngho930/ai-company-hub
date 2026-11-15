@@ -354,6 +354,62 @@ def run_all_tests():
     assert str(ws_gap1["D7"].value) == "⚠️ 보완필요(Gap)"
     print("✔ [기둥 10 통과] 자가중독 차단, 도메인 규격 집중, 전 NG 5-Why/Line-Stop, CEO 반려 지시 본문 반영, 동적 파일명 & 3시트 결재 엑셀 검증 완료")
 
+    # Test 12 (기둥 11): 실무 엣지 케이스 검증 (RoHS 'N.D./불검출/< 2.0ppm' 합격 판정, 정성 외관 '양호/불량', 편측 규격 Cpu/Cpl 산출, σ=0 제로 분산 방어)
+    from backend.file_processor import parse_measured_value, evaluate_spec_compliance
+
+    assert parse_measured_value("N.D.") == (0.0, "N.D.(0ppm)")
+    assert parse_measured_value("불검출") == (0.0, "불검출(0ppm)")
+    assert parse_measured_value("< 2.0ppm")[0] == 2.0
+    assert parse_measured_value("≤ 0.05")[0] == 0.05
+    assert evaluate_spec_compliance("100이하", "N.D.")[0] is True
+    assert evaluate_spec_compliance("100이하", "불검출")[0] is True
+    assert evaluate_spec_compliance("100이하", "< 2.0ppm")[0] is True
+    assert evaluate_spec_compliance("양호", "이상없음")[0] is True
+    assert evaluate_spec_compliance("양호", "크랙")[0] is False
+
+    edge_csv = (
+        "LOT번호,협력사,품목,검사항목,기준규격,실측값\n"
+        "LOT-ND-1,하나소재,하네스,납(Pb),1000이하,N.D.\n"
+        "LOT-ND-2,하나소재,하네스,납(Pb),1000이하,불검출\n"
+        "LOT-LT-1,하나소재,하네스,카드뮴(Cd),100이하,< 2.0ppm\n"
+        "LOT-LT-2,하나소재,하네스,카드뮴(Cd),100이하,4.0ppm\n"
+        "LOT-LSL-1,두리금속,터미널,인장강도,120이상,150\n"
+        "LOT-LSL-2,두리금속,터미널,인장강도,120이상,165\n"
+        "LOT-Z-1,세진정밀,모듈하우징,핀높이,10.0±0.5,10.0\n"
+        "LOT-Z-2,세진정밀,모듈하우징,핀높이,10.0±0.5,10.0\n"
+        "LOT-ZBAD-1,오류업체,모듈커버,핀길이,10.0±0.5,12.0\n"
+        "LOT-ZBAD-2,오류업체,모듈커버,핀길이,10.0±0.5,12.0\n"
+        "LOT-VIS-1,하나소재,하네스,외관검사,양호,이상없음\n"
+        "LOT-VIS-2,오류업체,모듈커버,외관검사,양호,크랙\n"
+    ).encode("utf-8-sig")
+
+    edge_summary, edge_meta = parse_uploaded_document("실무_엣지케이스_CoA.csv", edge_csv, session_id="test-edge-11")
+    # Pass: ND1, ND2, LT1, LT2, LSL1, LSL2, Z1, Z2, VIS1 = 9건 / Fail: ZBAD1, ZBAD2, VIS2 = 3건
+    assert edge_meta["pass_count"] == 9 and edge_meta["fail_count"] == 3, f"판정 건수 불일치: {edge_meta}"
+    assert "N.D.(0ppm)" in edge_summary and "불검출(0ppm)" in edge_summary
+    assert "Cpu=" in edge_summary and "Cpl=" in edge_summary
+    assert "99.99 (무결점 산포 σ=0)" in edge_summary
+
+    # σ=0 Zero-Division 방어 단독 검증 (규격 내 99.99 / 규격 이탈 0.00)
+    z_ok = compute_spc_capability([10.0, 10.0, 10.0], 9.5, 10.5)
+    z_bad = compute_spc_capability([12.0, 12.0, 12.0], 9.5, 10.5)
+    assert z_ok["sigma"] == 0.0 and z_ok["cpk"] == 99.99 and z_ok["zero_variance"] is True
+    assert z_bad["sigma"] == 0.0 and z_bad["cpk"] == 0.0 and z_bad["zero_variance"] is True
+
+    # Excel 2시트 편측 규격 & 무결점 산포(σ=0) 검증
+    edge_xlsx = build_xlsx_bytes("실무 엣지케이스 CoA", edge_summary, session_id="test-edge-11")
+    wb_edge = _openpyxl.load_workbook(_io.BytesIO(edge_xlsx))
+    ws_edge2 = wb_edge["2_SPC_및_Audit_Trail_정량표"]
+    ws_edge2_text = " ".join(
+        str(ws_edge2.cell(row=r, column=c).value)
+        for r in range(1, ws_edge2.max_row + 1)
+        for c in range(1, 10)
+        if ws_edge2.cell(row=r, column=c).value is not None
+    )
+    assert "99.99 (무결점 산포 σ=0)" in ws_edge2_text
+    assert "편측 공정능력 적격" in ws_edge2_text or "Cpk < 1.33" in ws_edge2_text
+    print("✔ [기둥 11 통과] 실무 엣지 케이스(RoHS 'N.D./불검출/< 2.0ppm' 합격, 정성 외관 '양호/불량', 편측 Cpu/Cpl 산출, σ=0 제로분산 방어) 검증 완료")
+
     print("=================================================================")
     print("🎉 [최종 감사 결과: 전 기술 기둥 & 다중 규격 레지스트리 100% 통과 (결함 0건)]")
     print("=================================================================")

@@ -274,13 +274,35 @@ def build_xlsx_bytes(title: str, report_text: str, session_id: str = "default") 
 
             for sp in spc_rows:
                 cpk_val = sp.get("cpk")
+                cp_val = sp.get("cp")
                 sample_n = int(sp.get("n") or 0)
-                is_weak_cpk = cpk_val is not None and cpk_val < 1.33
-                status_str = (
-                    "🚨 Cpk < 1.33 (산포 개선 필요)" if is_weak_cpk
-                    else ("✅ 공정능력 적격" if cpk_val is not None
-                          else ("ℹ️ 단일 표본(n=1)" if sample_n == 1 else "ℹ️ 편측 Spec"))
+                zero_var = bool(sp.get("zero_variance"))
+                spec_type = sp.get("spec_type") or (
+                    "two_sided" if (sp.get("lsl") is not None and sp.get("usl") is not None)
+                    else ("upper_only" if sp.get("usl") is not None else ("lower_only" if sp.get("lsl") is not None else "none"))
                 )
+                is_weak_cpk = cpk_val is not None and cpk_val < 1.33
+
+                if zero_var and cpk_val is not None and cpk_val >= 99.0:
+                    cpk_disp = "99.99 (무결점 산포 σ=0)"
+                    status_str = "✅ 무결점 산포 (σ=0)"
+                elif cpk_val is not None:
+                    cpk_disp = cpk_val
+                    if is_weak_cpk:
+                        status_str = "🚨 Cpk < 1.33 (산포 개선 필요)"
+                    elif spec_type in ("upper_only", "lower_only"):
+                        side_tag = "Cpu" if spec_type == "upper_only" else "Cpl"
+                        status_str = f"✅ 편측 공정능력 적격 ({side_tag})"
+                    else:
+                        status_str = "✅ 공정능력 적격"
+                elif sample_n == 1:
+                    cpk_disp = "-"
+                    status_str = "ℹ️ 단일 표본(n=1)"
+                else:
+                    cpk_disp = "-"
+                    status_str = "ℹ️ 판정 보류"
+
+                cp_disp = cp_val if cp_val is not None else ("N/A (편측)" if spec_type in ("upper_only", "lower_only") and sample_n >= 2 else "-")
                 vals = [
                     sp.get("group") or f"{sp.get('item', '-')}-{sp.get('check', '-')}",
                     sp.get("n", 0),
@@ -288,8 +310,8 @@ def build_xlsx_bytes(title: str, report_text: str, session_id: str = "default") 
                     sp.get("usl") if sp.get("usl") is not None else "-",
                     sp.get("mean", "-"),
                     sp.get("sigma", "-"),
-                    sp.get("cp") if sp.get("cp") is not None else "-",
-                    cpk_val if cpk_val is not None else "-",
+                    cp_disp,
+                    cpk_disp,
                     status_str,
                 ]
                 for c_i, v in enumerate(vals, start=1):

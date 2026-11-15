@@ -991,12 +991,12 @@ export default function PixelRpgOffice({
       ctx.fill();
 
       // [원본 배경 '이름 (대기)' 박스 100% 완전 소거 패치]
-      // 책상 좌표 기준 (dx - 55 ~ dx + 55, dy + 10 ~ dy + 50) 영역을 착석 여부와 무관하게
+      // 책상 좌표 기준 (dx - 56 ~ dx + 56, dy + 8 ~ dy + 50) 영역을 착석 여부와 무관하게
       // 방 바닥 카펫/마루 톤 그라데이션으로 빈틈없이 덮어 원본 배경의 이름표 삐져나옴을 원천 차단
-      const maskX = Math.round(dx - 55);
-      const maskY = Math.round(dy + 10);
-      const maskW = 110;
-      const maskH = 40;
+      const maskX = Math.round(dx - 56);
+      const maskY = Math.round(dy + 8);
+      const maskW = 112;
+      const maskH = 42;
       const nameEraseGrad = ctx.createLinearGradient(dx, maskY, dx, maskY + maskH);
       nameEraseGrad.addColorStop(0, room.bgFloorTone);
       nameEraseGrad.addColorStop(0.65, room.bgFloorTone);

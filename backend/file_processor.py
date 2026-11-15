@@ -567,15 +567,79 @@ def evaluate_iso_compliance(text: str, prompt: str = "", crawled_knowledge: str 
     return "\n".join([header_summary] + clause_lines + guide_lines)
 
 
+_ND_PATTERN = re.compile(r"^(?:n\.?\s*d\.?|불검출|무검출|미검출|not\s*detected)(?:\s*\(.*\))?$", flags=re.I)
+
+_QUAL_SPEC_TOKENS = ("양호", "이상없음", "결함없음", "무결점", "합격", "적합", "정상", "ok", "pass", "good", "normal")
+_QUAL_FAIL_TOKENS = (
+    "불합격", "부적합", "불량", "크랙", "crack", "파손", "스크래치", "오염", "이물",
+    "변색", "찍힘", "박리", "누수", "이상발견", "결함", "ng", "fail",
+)
+_QUAL_PASS_TOKENS = ("이상없음", "결함없음", "무결점", "양호", "적합", "정상", "합격", "ok", "pass", "good")
+
+
+def parse_measured_value(val_str: str) -> Tuple[Optional[float], str]:
+    """
+    [실무 성적서 특수 표기 파싱기]
+    - 'N.D.', 'ND', '불검출', '무검출', '미검출' ➔ 0.0 (표기: '<원문>(0ppm)', 예: 'N.D.(0ppm)')
+    - '< 2.0ppm', '≤ 0.05', '<= 0.5mg/kg' 등 부등호+단위 표기 ➔ 수치(2.0, 0.05, 0.5)
+    - 일반 수치/단위 조합('15.20 mm', '1,250 ppm') ➔ float
+    """
+    orig = str(val_str or "").strip()
+    if not orig:
+        return None, ""
+
+    if _ND_PATTERN.match(orig):
+        base_tok = re.sub(r"\s*\(.*\)\s*$", "", orig).strip()
+        if re.match(r"^n\.?\s*d\.?$", base_tok, flags=re.I):
+            return 0.0, "N.D.(0ppm)"
+        return 0.0, f"{base_tok}(0ppm)"
+
+    stripped = re.sub(r"^[<≤>≥]=?\s*", "", orig).strip()
+    stripped = re.sub(r"^(?:미만|이하|이상|초과|약)\s*", "", stripped).strip()
+    m_num = re.match(
+        r"^([+-]?\d{1,3}(?:,\d{3})*(?:\.\d+)?|[+-]?\d+(?:\.\d+)?)\s*(?:[%a-zA-ZμµΩ℃°/²³·]*)$",
+        stripped,
+    )
+    if m_num:
+        num_str = m_num.group(1).replace(",", "")
+        try:
+            return float(num_str), orig
+        except ValueError:
+            return None, orig
+
+    return None, orig
+
+
+def _parse_measured_number(val_str: str) -> Optional[float]:
+    num, _ = parse_measured_value(val_str)
+    return num
+
+
 def evaluate_spec_compliance(spec_str: str, val_str: str) -> Tuple[Optional[bool], Optional[float]]:
     if not spec_str or not val_str:
         return None, None
 
-    clean_val = re.sub(r"[,%\sA-Za-zμmMPap]+", "", str(val_str))
-    if not re.match(r"^[+-]?\d+(?:\.\d+)?$", clean_val):
-        return None, None
-    measured = float(clean_val)
     s = str(spec_str).strip()
+    v_orig = str(val_str).strip()
+    v_low = v_orig.lower()
+    s_low = s.lower()
+
+    # 1) 정성적 외관/기능 검사(양호 vs 불량·크랙·파손·NG 등) 판정
+    has_digit_in_spec = bool(re.search(r"\d", s))
+    if not has_digit_in_spec and any(tok in s_low for tok in _QUAL_SPEC_TOKENS):
+        # '이상없음'이 '이상'에 걸리지 않도록 무결 표현 선검사 후 불량 토큰 검사
+        if any(tok in v_low for tok in ("이상없", "이상 없", "결함없", "결함 없", "무결점")):
+            return True, None
+        if any(tok in v_low for tok in _QUAL_FAIL_TOKENS):
+            return False, None
+        if any(tok in v_low for tok in _QUAL_PASS_TOKENS):
+            return True, None
+        return None, None
+
+    # 2) 정량 수치(특수 표기 N.D./불검출/< 2.0ppm/≤ 0.05 포함) 파싱
+    measured, _ = parse_measured_value(v_orig)
+    if measured is None:
+        return None, None
 
     m_tol = re.search(r"(\d+(?:\.\d+)?)\s*(?:±|\+\-|\+/-)\s*(\d+(?:\.\d+)?)", s)
     if m_tol:
@@ -592,19 +656,20 @@ def evaluate_spec_compliance(spec_str: str, val_str: str) -> Tuple[Optional[bool
         dev = round(measured - mid, 3)
         return (low <= measured <= high), dev
 
-    m_min = re.search(r"(?:>=|이상|min)\s*(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s*(?:이상|min|\+)", s, flags=re.I)
+    m_min = re.search(r"(?:>=|≥|이상|min)\s*(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s*(?:이상|min|\+)", s, flags=re.I)
     if m_min:
         bound = float(m_min.group(1) or m_min.group(2))
         dev = round(measured - bound, 3)
         return (measured >= bound), dev
 
-    m_max = re.search(r"(?:<=|이하|미만|max|<)\s*(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s*(?:이하|미만|max)", s, flags=re.I)
+    m_max = re.search(r"(?:<=|≤|이하|미만|max|<)\s*(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s*(?:이하|미만|max)", s, flags=re.I)
     if m_max:
         bound = float(m_max.group(1) or m_max.group(2))
         dev = round(measured - bound, 3)
         return (measured <= bound), dev
 
-    m_plain = re.match(r"^[+-]?\d+(?:\.\d+)?$", re.sub(r"[,%\sA-Za-zμmMPap]+", "", s))
+    plain_clean = re.sub(r"[,%\sA-Za-zμµmMPap]+", "", s)
+    m_plain = re.match(r"^[+-]?\d+(?:\.\d+)?$", plain_clean)
     if m_plain:
         bound = float(m_plain.group(0))
         dev = round(measured - bound, 3)
@@ -649,48 +714,65 @@ def parse_spec_limits(spec_str: str) -> Tuple[Optional[float], Optional[float]]:
     if m_range:
         low, high = float(m_range.group(1)), float(m_range.group(2))
         return min(low, high), max(low, high)
-    m_min = re.search(r"(?:>=|이상|min)\s*(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s*(?:이상|min|\+)", s, flags=re.I)
+    m_min = re.search(r"(?:>=|≥|이상|min)\s*(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s*(?:이상|min|\+)", s, flags=re.I)
     if m_min:
         return float(m_min.group(1) or m_min.group(2)), None
-    m_max = re.search(r"(?:<=|이하|미만|max|<)\s*(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s*(?:이하|미만|max)", s, flags=re.I)
+    m_max = re.search(r"(?:<=|≤|이하|미만|max|<)\s*(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s*(?:이하|미만|max)", s, flags=re.I)
     if m_max:
         return None, float(m_max.group(1) or m_max.group(2))
     return None, None
-
-
-def _parse_measured_number(val_str: str) -> Optional[float]:
-    clean_val = re.sub(r"[,%\sA-Za-zμmMPap]+", "", str(val_str or ""))
-    if re.match(r"^[+-]?\d+(?:\.\d+)?$", clean_val):
-        return float(clean_val)
-    return None
 
 
 def compute_spc_capability(values: list[float], lsl: Optional[float], usl: Optional[float]) -> dict:
     """
     [Real SPC 통계적 공정관리 수학 연산]
     - 평균(Mean), 표본 표준편차(σ, statistics.stdev)
-    - Cp  = (USL - LSL) / (6σ)                       (양측 규격일 때만)
-    - Cpk = min((USL - Mean) / 3σ, (Mean - LSL) / 3σ) (단측 규격이면 존재하는 쪽만 사용)
-    - 규격 여유도(Margin %) = 가장 가까운 규격 한계까지의 거리 / 공차폭(양측) 또는 한계값(단측)
+    - 양측 규격: Cp = (USL - LSL)/(6σ), Cpk = min((USL - Mean)/3σ, (Mean - LSL)/3σ)
+    - 편측 규격: Cpu = (USL - Mean)/(3σ) 또는 Cpl = (Mean - LSL)/(3σ) -> Cpk 산출
+    - σ = 0 (n >= 2): ZeroDivisionError 방어 — 규격 내면 Cpk = 99.99 (무결점 산포 σ=0), 이탈이면 Cpk = 0.00
     """
     n = len(values)
     mean = statistics.fmean(values) if n else float("nan")
     sigma = statistics.stdev(values) if n >= 2 else None
     cp: Optional[float] = None
+    cpu: Optional[float] = None
+    cpl: Optional[float] = None
     cpk: Optional[float] = None
+    zero_variance = False
+
+    if lsl is not None and usl is not None:
+        spec_type = "two_sided"
+    elif usl is not None:
+        spec_type = "upper_only"
+    elif lsl is not None:
+        spec_type = "lower_only"
+    else:
+        spec_type = "none"
 
     if sigma is not None and sigma > 0:
         if lsl is not None and usl is not None:
             cp = (usl - lsl) / (6 * sigma)
         sides = []
         if usl is not None:
-            sides.append((usl - mean) / (3 * sigma))
+            cpu = (usl - mean) / (3 * sigma)
+            sides.append(cpu)
         if lsl is not None:
-            sides.append((mean - lsl) / (3 * sigma))
+            cpl = (mean - lsl) / (3 * sigma)
+            sides.append(cpl)
         cpk = min(sides) if sides else None
     elif sigma == 0 and n >= 2:
-        cp = math.inf if (lsl is not None and usl is not None) else None
-        cpk = math.inf
+        zero_variance = True
+        in_spec = (lsl is None or mean >= lsl) and (usl is None or mean <= usl)
+        if in_spec:
+            cp = 99.99 if (lsl is not None and usl is not None) else None
+            cpu = 99.99 if usl is not None else None
+            cpl = 99.99 if lsl is not None else None
+            cpk = 99.99 if (lsl is not None or usl is not None) else None
+        else:
+            cp = 0.0 if (lsl is not None and usl is not None) else None
+            cpu = 0.0 if usl is not None else None
+            cpl = 0.0 if lsl is not None else None
+            cpk = 0.0 if (lsl is not None or usl is not None) else None
 
     # 측정값별 규격 여유도(%) — 경계 15% 이내면 Warning Zone
     margins: list[float] = []
@@ -707,17 +789,23 @@ def compute_spc_capability(values: list[float], lsl: Optional[float], usl: Optio
         "mean": mean,
         "sigma": sigma,
         "cp": cp,
+        "cpu": cpu,
+        "cpl": cpl,
         "cpk": cpk,
+        "spec_type": spec_type,
+        "zero_variance": zero_variance,
         "margins": margins,
         "min_margin": min(margins) if margins else None,
     }
 
 
-def _fmt_index(v: Optional[float]) -> str:
+def _fmt_index(v: Optional[float], zero_variance: bool = False) -> str:
     if v is None:
         return "N/A"
     if math.isinf(v):
-        return "∞"
+        return "99.99 (무결점 산포 σ=0)"
+    if zero_variance and v >= 99.0:
+        return f"{v:.2f} (무결점 산포 σ=0)"
     return f"{v:.2f}"
 
 
@@ -775,20 +863,21 @@ def _analyze_tabular_rows(filename: str, all_clean_rows: list[list[str]], sessio
         masked_row = [scrub_pii_and_secrets(str(c))[0] for c in row]
         row_str_join = " | ".join([c for c in masked_row if c])
         judge_val = masked_row[judge_idx] if (0 <= judge_idx < len(masked_row)) else ""
-        is_fail = any(k in judge_val for k in ["불합격", "부적합", "불량", "NG", "FAIL", "반려", "초과"])
-        is_pass = not is_fail and any(k in judge_val for k in ["합격", "적합", "정상", "OK", "PASS", "불검출", "N.D"])
+        is_fail = any(k in judge_val for k in ["불합격", "부적합", "불량", "NG", "FAIL", "반려", "초과", "크랙", "파손"])
+        is_pass = not is_fail and any(k in judge_val for k in ["합격", "적합", "정상", "양호", "OK", "PASS", "불검출", "N.D"])
 
         auto_dev: Optional[float] = None
         if (0 <= spec_idx < len(masked_row)) and (0 <= val_idx < len(masked_row)):
             spec_ok, calc_dev = evaluate_spec_compliance(masked_row[spec_idx], masked_row[val_idx])
             auto_dev = calc_dev
             if not is_fail and not is_pass:
+                dev_note = f"편차 {calc_dev:+.2f}" if calc_dev is not None else "정성·규격 판정"
                 if spec_ok is False:
                     is_fail = True
-                    row_str_join += f" | [규격 판정: 불합격 (편차 {calc_dev:+.2f})]"
+                    row_str_join += f" | [규격 판정: 불합격 ({dev_note})]"
                 elif spec_ok is True:
                     is_pass = True
-                    row_str_join += f" | [규격 판정: 합격 (편차 {calc_dev:+.2f})]"
+                    row_str_join += f" | [규격 판정: 합격 ({dev_note})]"
 
         export_row = list(masked_row) + [""] * max(0, len(headers) - len(masked_row))
         if judge_idx == -1:
@@ -800,13 +889,19 @@ def _analyze_tabular_rows(filename: str, all_clean_rows: list[list[str]], sessio
         item_name = masked_row[item_idx] if (0 <= item_idx < len(masked_row) and masked_row[item_idx]) else f"품목-{r_num}"
         check_name = masked_row[check_idx] if (0 <= check_idx < len(masked_row) and masked_row[check_idx]) else "치수/성분규격"
         spec_val = masked_row[spec_idx] if (0 <= spec_idx < len(masked_row) and masked_row[spec_idx]) else "기준규격"
-        measured_val = masked_row[val_idx] if (0 <= val_idx < len(masked_row) and masked_row[val_idx]) else "측정치"
+        raw_measured_cell = masked_row[val_idx] if (0 <= val_idx < len(masked_row) and masked_row[val_idx]) else "측정치"
+        _, measured_norm_disp = parse_measured_value(raw_measured_cell)
+        measured_val = measured_norm_disp or raw_measured_cell
 
         explicit_dev_str = masked_row[dev_idx] if (0 <= dev_idx < len(masked_row) and masked_row[dev_idx]) else ""
         if explicit_dev_str:
             raw_diff = explicit_dev_str
         elif auto_dev is not None:
             raw_diff = f"{auto_dev:+.2f}"
+        elif is_fail:
+            raw_diff = "정성 불량(외관·기능 결함)"
+        elif is_pass:
+            raw_diff = "정성 적격(이상없음)"
         else:
             raw_diff = "규격이탈"
 
@@ -943,20 +1038,33 @@ def _analyze_tabular_rows(filename: str, all_clean_rows: list[list[str]], sessio
         limit_str = f"LSL {_g(grp['lsl'])} / USL {_g(grp['usl'])}"
         min_margin = cap["min_margin"]
         margin_str = f"{min_margin:.1f}%" if min_margin is not None else "N/A"
+        zero_var = bool(cap.get("zero_variance"))
+        spec_type = cap.get("spec_type", "two_sided")
 
         if cap["n"] >= 2 and cap["sigma"] is not None:
             cpk_v = cap["cpk"]
             if cpk_v is None:
                 verdict = "판정 보류"
+            elif zero_var and cpk_v >= 99.0:
+                verdict = "🟢 무결점 산포(σ=0)"
             elif cpk_v >= 1.67:
                 verdict = "🟢 공정능력 우수(Cpk ≥ 1.67)"
             elif cpk_v >= 1.33:
                 verdict = "🟢 공정능력 적정(Cpk ≥ 1.33)"
             else:
                 verdict = "🚨 공정능력 부족(Cpk < 1.33)"
+
+            cpk_str = _fmt_index(cpk_v, zero_variance=zero_var)
+            if spec_type == "upper_only":
+                idx_str = f"Cp=N/A(편측), Cpu={_fmt_index(cap['cpu'], zero_variance=zero_var)}, Cpk={cpk_str}"
+            elif spec_type == "lower_only":
+                idx_str = f"Cp=N/A(편측), Cpl={_fmt_index(cap['cpl'], zero_variance=zero_var)}, Cpk={cpk_str}"
+            else:
+                idx_str = f"Cp={_fmt_index(cap['cp'], zero_variance=zero_var)}, Cpk={cpk_str}"
+
             spc_parts.append(
                 f"{label}(n={cap['n']}, {limit_str}): 평균 {cap['mean']:.4f}, σ={cap['sigma']:.4f}, "
-                f"Cp={_fmt_index(cap['cp'])}, Cpk={_fmt_index(cpk_v)}, 최소 규격 여유도 {margin_str} ➔ {verdict}"
+                f"{idx_str}, 최소 규격 여유도 {margin_str} ➔ {verdict}"
             )
             if cpk_v is not None and not math.isinf(cpk_v) and cpk_v < 1.33:
                 if grp["fail"] == 0:
@@ -992,7 +1100,11 @@ def _analyze_tabular_rows(filename: str, all_clean_rows: list[list[str]], sessio
             "mean": round(cap["mean"], 6),
             "sigma": round(cap["sigma"], 6) if cap["sigma"] is not None else None,
             "cp": (round(cap["cp"], 4) if cap["cp"] is not None and not math.isinf(cap["cp"]) else cap["cp"]),
+            "cpu": (round(cap["cpu"], 4) if cap.get("cpu") is not None and not math.isinf(cap["cpu"]) else cap.get("cpu")),
+            "cpl": (round(cap["cpl"], 4) if cap.get("cpl") is not None and not math.isinf(cap["cpl"]) else cap.get("cpl")),
             "cpk": (round(cap["cpk"], 4) if cap["cpk"] is not None and not math.isinf(cap["cpk"]) else cap["cpk"]),
+            "spec_type": spec_type,
+            "zero_variance": zero_var,
             "min_margin_pct": round(min_margin, 2) if min_margin is not None else None,
         })
 
